@@ -6,6 +6,7 @@ import { useGameStore } from "@/state/useGameStore";
 export default function GameLayout({children}: {children: ReactNode;}) {
     const year = useGameStore((state) => state.year);
     const month = useGameStore((state) => state.month);
+
     const cash = useGameStore((state) => state.cash);
     const energy = useGameStore((state) => state.energy);
 
@@ -16,6 +17,7 @@ export default function GameLayout({children}: {children: ReactNode;}) {
                 <div className="text-sm flex gap-4">
                     <span>Year: {year}</span>
                     <span>Month: {month}</span>
+
                     <span>Cash: {cash}</span>
                     <span>Energy: {energy}</span>
                 </div>
