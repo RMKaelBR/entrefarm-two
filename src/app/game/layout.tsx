@@ -1,10 +1,12 @@
 'use client';
 
 import type { ReactNode } from "react";
-import { useGameStore } from "@/features/state/useGameStore";
+import { useGameStore } from "@/state/useGameStore";
 
 export default function GameLayout({children}: {children: ReactNode;}) {
-    const day = useGameStore((state) => state.day);
+    const year = useGameStore((state) => state.year);
+    const month = useGameStore((state) => state.month);
+
     const cash = useGameStore((state) => state.cash);
     const energy = useGameStore((state) => state.energy);
 
@@ -13,7 +15,9 @@ export default function GameLayout({children}: {children: ReactNode;}) {
             <header>
                 <div className="font-semibold">🌾 Entrefarm Game Header</div>
                 <div className="text-sm flex gap-4">
-                    <span>Day: {day}</span>
+                    <span>Year: {year}</span>
+                    <span>Month: {month}</span>
+
                     <span>Cash: {cash}</span>
                     <span>Energy: {energy}</span>
                 </div>
