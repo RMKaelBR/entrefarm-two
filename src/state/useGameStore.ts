@@ -1,15 +1,65 @@
+import { childrenAgeTicker } from '@/game/family/childrenAgeTicker';
 import { addCurrency, subCurrency } from '@/game/money/calculateMoney';
-import { advanceMonth, advanceYear } from '@/game/time/advanceTime';
-import { GameState } from '@/game/types';
+import { advanceTime, advanceYear } from '@/game/time/advanceTime';
+import { GameState, Child } from '@/game/types';
 import { create } from 'zustand';
 
+const makeId = () => crypto.randomUUID();
+
+const createChild = (overrides?: Partial<Child>): Child => ({
+  id: makeId(),
+  stage: "child",
+  timeTokens: 0,
+  timeTokensMax: 8, // example: 8 quarters = 2 years; tweak later
+  ...overrides,
+});
+
+const initialState = {
+  year: 1,
+  quarter: 1,
+  month: 1,
+  wallet: { gold: 0, silver: 0 },
+  bank: { gold: 0, silver: 0 },
+  children: [createChild(), createChild()],
+} as const;
+
 export const useGameStore = create<GameState>((set, get) => ({
+    ...initialState,
+
+    // TIME (state)
     year: 1,
+    quarter: 1,
     month: 1,
-    energy: 50,
+
+    // MONEY
     wallet: { gold: 0, silver: 0 },
     bank: { gold: 0, silver: 0 },
+
+    // FAMILY
+    children: [createChild(), createChild()],
+
+    // TIME (actions)
+    advanceTime: () => set((state) => {
+        const nextTime = advanceTime(state);
+        const isQuarterEnd = state.month % 3 === 0;
+
+        return {
+            ...state,
+            ...nextTime,
+            children: isQuarterEnd ? childrenAgeTicker(state.children) : state.children,
+
+        }
+    }),
+
+    nextYear: () =>
+        set((state) => ({
+            ...state,
+            ...advanceYear(state),
+        })),
+
+    // MONEY (actions)
     earn: (amount) => set((state) => ({
+        ...state,
         wallet: addCurrency(state.wallet, amount),
     })),
     spend: (amount) => {
@@ -22,6 +72,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         return true;
     },
     deposit: (amount) => set((state) => ({
+        ...state,
         bank: addCurrency(state.bank, amount),
     })),
     withdraw: (amount) => {
@@ -33,22 +84,28 @@ export const useGameStore = create<GameState>((set, get) => ({
         set({ bank: next });
         return true;
     },
-    nextYear: () =>
+
+    // FAMILY (actions)
+    initFamily: () => {
+        set(() => ({
+          children: [createChild(), createChild()],
+        }));
+    },
+    addChild: (child: Child) => {
         set((state) => ({
-            ...state,
-            ...advanceYear(state),
-        })),
-    nextMonth: () =>
+            children: [...state.children, createChild(child)],
+        }));
+    },
+    removeChild: (childId: string) => {
         set((state) => ({
-            ...state,
-            ...advanceMonth(state),
-        })),
+            children: state.children.filter((c) => c.id !== childId),
+        }));
+    },
+
+    // RESET ALL
     resetAll: () =>
         set(() => ({
-            year: 1,
-            month: 1,
-            day: 1,
-            cash: 100,
-            energy: 50,
+            ...initialState,
+            children: [createChild(), createChild()], // reset with new children
         })),
 }));
