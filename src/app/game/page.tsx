@@ -1,11 +1,12 @@
 'use client';
 
-import { useGameStore } from "@/state/useGameStore";
+import { useGameStore } from "@/state/game-state";
 import { useState } from "react";
+import { Button } from "./components/button";
 
 const GamePage = () => {
     const nextYear = useGameStore((state) => state.nextYear);
-    const advanceTime = useGameStore((state) => state.advanceTime);
+    const advanceWorldTime = useGameStore((state) => state.advanceWorldTime);
     const resetAll = useGameStore((state) => state.resetAll);
 
     const earn = useGameStore((state) => state.earn);
@@ -23,7 +24,7 @@ const GamePage = () => {
             <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={nextYear}>
                 Next Year
             </button>
-            <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={advanceTime}>
+            <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={advanceWorldTime}>
                 Next Month
 
             </button>
@@ -59,52 +60,40 @@ const GamePage = () => {
             {/* Currency Actions */}
             <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
-                    <button
-                    className="rounded-xl border px-4 py-2 hover:bg-black/5"
-                    onClick={() => earn(amount)}
-                    >
-                    Add to Wallet
-                    </button>
+                    <Button
+                        className="rounded-xl border px-4 py-2 hover:bg-black/5"
+                        onClick={() => earn(amount)}
+                        label="Add to Wallet"
+                    />
 
-                    <button
-                    className="rounded-xl border px-4 py-2 hover:bg-black/5"
-                    onClick={() => {
-                        const ok = spend(amount);
-                        if (!ok) {
-                        alert('Not enough funds!');
-                        }
-
-                    }}
-                    >
-                    Spend from Wallet
-                    </button>
-                </div>
-                <div className="flex gap-2">
-                    <button
+                    <Button
                         className="rounded-xl border px-4 py-2 hover:bg-black/5"
                         onClick={() => {
                             const ok = spend(amount);
-                            if (!ok) {
-                            alert('Not enough funds!');
-                            }
-                            deposit(amount)
+                            if (!ok) alert('Not enough funds!');
                         }}
-                    >
-                    Deposit to Bank
-                    </button>
-
-                    <button
-                    className="rounded-xl border px-4 py-2 hover:bg-black/5"
-                    onClick={() => {
-                        const ok = withdraw(amount);
-                        if (!ok) {
-                        alert('Not enough funds!');
-                        }
-                        earn(amount)
-                    }}
-                    >
-                    Withdraw from Bank
-                    </button>
+                        label="Spend from Wallet"
+                    />
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        className="rounded-xl border px-4 py-2 hover:bg-black/5"
+                        onClick={() => {
+                            const ok = spend(amount);
+                            if (!ok) alert('Not enough funds!');
+                            else deposit(amount);
+                        }}
+                        label="Deposit to Bank"
+                    />
+                    <Button
+                        className="rounded-xl border px-4 py-2 hover:bg-black/5"
+                        onClick={() => {
+                            const ok = withdraw(amount);
+                            if (!ok) alert('Not enough funds!');
+                            else earn(amount);
+                        }}
+                        label="Withdraw from Bank"
+                    />
                 </div>
             </div>
         </div>
