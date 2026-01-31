@@ -1,12 +1,27 @@
+import { childrenAgeTicker } from "../family/family-functions";
 import { GameState, TokenTrack } from "../types";
 
-export function advanceTime(state: GameState): Partial<GameState> {
-  const isYearEnd = state.month === 12;
+type TimePatch = Pick<GameState, "year" | "quarter" | "month">;
+
+export function advanceWorldTime(state: GameState): Partial<GameState> {
+  const isQuarterEnd = state.month % 3 === 0;
+  const nextTime = advanceTime(state);
 
   return {
-    year: isYearEnd ? state.year + 1 : state.year,
-    quarter: isYearEnd ? 1 : Math.floor((state.month) / 3) + 1,
-    month: isYearEnd ? 1 : state.month + 1,
+    ...nextTime,
+    children: isQuarterEnd ? childrenAgeTicker(state.children) : state.children,
+  };
+}
+
+export function advanceTime(state: GameState): TimePatch {
+  const nextMonth = state.month === 12 ? 1 : state.month + 1;
+  const nextYear = state.month === 12 ? state.year + 1 : state.year;
+  const nextQuarter = Math.floor((nextMonth - 1) / 3) + 1;
+
+  return {
+    year: nextYear,
+    quarter: nextQuarter,
+    month: nextMonth,
   };
 }
 
