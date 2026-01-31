@@ -5,7 +5,7 @@ import { useState } from "react";
 
 const GamePage = () => {
     const nextYear = useGameStore((state) => state.nextYear);
-    const nextMonth = useGameStore((state) => state.nextMonth);
+    const advanceTime = useGameStore((state) => state.advanceTime);
     const resetAll = useGameStore((state) => state.resetAll);
 
     const earn = useGameStore((state) => state.earn);
@@ -23,7 +23,7 @@ const GamePage = () => {
             <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={nextYear}>
                 Next Year
             </button>
-            <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={nextMonth}>
+            <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={advanceTime}>
                 Next Month
 
             </button>
