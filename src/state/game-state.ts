@@ -1,18 +1,9 @@
-import { childrenAgeTicker } from '@/game/family/childrenAgeTicker';
-import { addCurrency, subCurrency } from '@/game/money/calculateMoney';
-import { advanceTime, advanceYear } from '@/game/time/advanceTime';
+import { pauseChildEducation, resumeChildEducation, setChildLaborProfession } from '@/game/family/education-functions';
+import { createChild, updateChildById } from '@/game/family/family-functions';
+import { addCurrency, subCurrency } from '@/game/money/calculate-money';
+import { advanceWorldTime, advanceYear } from '@/game/time/advance-time';
 import { GameState, Child } from '@/game/types';
 import { create } from 'zustand';
-
-const makeId = () => crypto.randomUUID();
-
-const createChild = (overrides?: Partial<Child>): Child => ({
-  id: makeId(),
-  stage: "child",
-  timeTokens: 0,
-  timeTokensMax: 8, // example: 8 quarters = 2 years; tweak later
-  ...overrides,
-});
 
 const initialState = {
   year: 1,
@@ -39,17 +30,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     children: [createChild(), createChild()],
 
     // TIME (actions)
-    advanceTime: () => set((state) => {
-        const nextTime = advanceTime(state);
-        const isQuarterEnd = state.month % 3 === 0;
-
-        return {
+    advanceWorldTime: () => set((state) => ({
             ...state,
-            ...nextTime,
-            children: isQuarterEnd ? childrenAgeTicker(state.children) : state.children,
-
-        }
-    }),
+            ...advanceWorldTime(state)
+        })),
 
     nextYear: () =>
         set((state) => ({
@@ -93,12 +77,34 @@ export const useGameStore = create<GameState>((set, get) => ({
     },
     addChild: (child: Child) => {
         set((state) => ({
+            ...state,
             children: [...state.children, createChild(child)],
         }));
     },
     removeChild: (childId: string) => {
         set((state) => ({
+            ...state,
             children: state.children.filter((c) => c.id !== childId),
+        }));
+    },
+    pauseChildEducation: (childId: Child["id"]) => {
+        set((state) => ({
+            ...state,
+            children: updateChildById(state.children, childId, pauseChildEducation)
+        }));
+    },
+    resumeChildEducation: (childId: Child["id"]) => {
+        set((state) => ({
+            ...state,
+            children: updateChildById(state.children, childId, resumeChildEducation)
+        }));
+    },
+    setChildLaborProfession: (childId: Child["id"], laborProfession: Child["laborProfession"]) => {
+        set((state) => ({
+            ...state,
+            children: updateChildById(state.children, childId, (c) =>
+                setChildLaborProfession(c, laborProfession)
+            ),
         }));
     },
 
