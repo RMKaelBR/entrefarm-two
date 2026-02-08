@@ -1,4 +1,4 @@
-import { childrenAgeTicker } from "../family/family-functions";
+import { tickChildrenQuarter } from "../family/family-functions";
 import { GameState, TokenTrack } from "../types";
 
 type TimePatch = Pick<GameState, "year" | "quarter" | "month">;
@@ -9,7 +9,7 @@ export function advanceWorldTime(state: GameState): Partial<GameState> {
 
   return {
     ...nextTime,
-    children: isQuarterEnd ? childrenAgeTicker(state.children) : state.children,
+    children: isQuarterEnd ? tickChildrenQuarter(state.children) : state.children,
   };
 }
 

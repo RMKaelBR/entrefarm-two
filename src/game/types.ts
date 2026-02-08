@@ -16,7 +16,7 @@ export type GameState = {
     removeChild: (childId: Child["id"]) => void;
     pauseChildEducation: (childId: Child["id"]) => void;
     resumeChildEducation: (childId: Child["id"]) => void;
-    setChildLaborProfession: (childId: Child["id"], laborProfession: Child["laborProfession"]) => void;
+    setChildLaborJob: (childId: Child["id"], laborJob: Child["laborJob"]) => void;
     resetAll: () => void;
 };
 
@@ -29,18 +29,20 @@ type PersonStage = "child" | "adult_child";
 export const GENDERS = ["male", "female"] as const;
 export type Gender = typeof GENDERS[number];
 
-export const PROFESSIONS = [
-  "civil_engineer",
-  "mechanical_engineer",
-  "agricultural_engineer",
-  "engineer",
-  "doctor",
-  "lawyer",
-  "agriculturist",
-  "financial_analyst"
-] as const;
+export const PROFESSIONS = {
+  civil_engineer: { label: "Civil Engineer", progressMax: 5 },
+  mechanical_engineer: { label: "Mechanical Engineer", progressMax: 5 },
+  agricultural_engineer: { label: "Agricultural Engineer", progressMax: 5 },
+  engineer: { label: "Engineer", progressMax: 5 },
+  doctor: { label: "Doctor", progressMax: 8 },
+  lawyer: { label: "Lawyer", progressMax: 8 },
+  agriculturist: { label: "Agriculturist", progressMax: 4 },
+  financial_analyst: { label: "Financial Analyst", progressMax: 4 },
+} as const;
 
-export type Profession = typeof PROFESSIONS[number];
+export type ProfessionCode = keyof typeof PROFESSIONS;
+
+export type ProfessionDef = (typeof PROFESSIONS)[ProfessionCode];
 
 export const LABOR_PROFESSIONS = [
   "employee",
@@ -56,11 +58,16 @@ export type Child = {
   stage: PersonStage;
   gender: Gender;
   isStudying?: boolean;
-  profession: Profession;
-  laborProfession?: LaborProfession | null;
+  profession?: ProfessionCode;
+  laborJob?: LaborProfession | null;
   
   maturity: TokenTrack;
-  education?: TokenTrack | null;
+  education?: EducationProgressTrack | null;
+};
+
+export type EducationProgressTrack = {
+  progress: number;
+  progressMax: number;
 };
 
 export type TokenTrack = { timeTokens: number; timeTokensMax: number };
