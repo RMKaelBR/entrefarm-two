@@ -1,4 +1,4 @@
-import { pauseChildEducation, resumeChildEducation, setChildLaborProfession } from '@/game/family/education-functions';
+import { pauseChildEducation, resumeChildEducation, setChildLaborJob } from '@/game/family/education-functions';
 import { createChild, updateChildById } from '@/game/family/family-functions';
 import { addCurrency, subCurrency } from '@/game/money/calculate-money';
 import { advanceWorldTime, advanceYear } from '@/game/time/advance-time';
@@ -13,6 +13,8 @@ const initialState = {
   bank: { gold: 0, silver: 0 },
   children: [createChild(), createChild()],
 } as const;
+
+const isQuarterStart = (month: number) => month % 3 === 1;
 
 export const useGameStore = create<GameState>((set, get) => ({
     ...initialState,
@@ -94,16 +96,17 @@ export const useGameStore = create<GameState>((set, get) => ({
         }));
     },
     resumeChildEducation: (childId: Child["id"]) => {
+        if (!isQuarterStart(get().month)) return;
         set((state) => ({
             ...state,
             children: updateChildById(state.children, childId, resumeChildEducation)
         }));
     },
-    setChildLaborProfession: (childId: Child["id"], laborProfession: Child["laborProfession"]) => {
+    setChildLaborJob: (childId: Child["id"], laborJob: Child["laborJob"]) => {
         set((state) => ({
             ...state,
             children: updateChildById(state.children, childId, (c) =>
-                setChildLaborProfession(c, laborProfession)
+                setChildLaborJob(c, laborJob)
             ),
         }));
     },

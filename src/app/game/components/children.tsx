@@ -5,6 +5,8 @@ export const ChildrenComponent = () => {
     const childCards = useGameStore((state) => state.children);
     const pauseChildEducation = useGameStore((state) => state.pauseChildEducation);
     const resumeChildEducation = useGameStore((state) => state.resumeChildEducation);
+    const month = useGameStore((state) => state.month);
+    const isQuarterStart = month % 3 === 1;
 
     return (
         <section>
@@ -19,10 +21,11 @@ export const ChildrenComponent = () => {
                             {child.stage === "adult_child" && (
                                 <div>
                                     <div>Profession: {child.profession}</div>
+                                    <div>Education Progress: {child.education ? `${child.education.progress} / ${child.education.progressMax}` : "N/A"}</div>
                                     {child.isStudying ? (
                                         <Button variant="warning" label="Pause Studies" onClick={() => pauseChildEducation(child.id)} />
                                     ) : (
-                                        <Button variant="primary" label="Resume Studies" onClick={() => resumeChildEducation(child.id)} />
+                                        <Button variant={isQuarterStart ? "primary" : "secondary"} label="Resume Studies" onClick={() => resumeChildEducation(child.id)} />
                                     )}
                                     {/* ONLY FOR THE LULZZZ */}
                                     <div className="flex flex-col mt-4 gap-2"> 
