@@ -1,7 +1,7 @@
 'use client';
 
 import { QUARTERLY_TUITION_COST } from '@/game-data/types';
-import { getTimeAdvanceBlockReason, isQuarterStart, useGameStore } from '@/state/game-state';
+import { getTimeAdvanceBlockReason, useGameStore } from '@/state/game-state';
 import { ChildrenComponent } from '../children';
 
 export default function Hud() {
@@ -24,13 +24,14 @@ export default function Hud() {
                 <div>Wallet: {wallet.gold}<span className="text-sm">🟡</span> {wallet.silver}<span className="text-sm">🔘</span></div>
                 <div>Bank: {bank.gold}<span className="text-sm">🟡</span> {bank.silver}<span className="text-sm">🔘</span></div>
             </article>
-            {isQuarterStart(month) && (
-                <article className="text-sm text-stone-700">
-                    Quarterly tuition is {QUARTERLY_TUITION_COST.gold} gold per adult child.
-                </article>
-            )}
             {tuitionBlockReason && (
-                <article className="text-sm text-red-700">{tuitionBlockReason}</article>
+                <>
+                    <article className="text-sm text-stone-700">
+                        Tuition is {QUARTERLY_TUITION_COST.gold} gold per eligible child,
+                        or you may opt out for this quarter.
+                    </article>
+                    <article className="text-sm text-red-700">{tuitionBlockReason}</article>
+                </>
             )}
             <article>
                 <ChildrenComponent />
