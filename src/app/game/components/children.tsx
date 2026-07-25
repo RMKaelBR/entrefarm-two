@@ -14,7 +14,6 @@ export const ChildrenComponent = () => {
     const payChildTuition = useGameStore((state) => state.payChildTuition);
     const optOutChildEducation = useGameStore((state) => state.optOutChildEducation);
     const pauseChildEducation = useGameStore((state) => state.pauseChildEducation);
-    const resumeChildEducation = useGameStore((state) => state.resumeChildEducation);
     const wallet = useGameStore((state) => state.wallet);
     const remainingAfterTuition = subCurrency(wallet, QUARTERLY_TUITION_COST);
     const canAffordTuition =
@@ -81,17 +80,22 @@ export const ChildrenComponent = () => {
 
                                             {child.tuitionDecision === "paid" && (
                                                 child.isStudying ? (
-                                                    <Button
-                                                        variant="warning"
-                                                        label="Pause Studies"
-                                                        onClick={() => pauseChildEducation(child.id)}
-                                                    />
+                                                    <div className="space-y-2">
+                                                        <p className="text-sm text-amber-700">
+                                                            Pausing forfeits this quarter&apos;s education progress.
+                                                            Studies cannot restart until next quarter.
+                                                        </p>
+                                                        <Button
+                                                            variant="warning"
+                                                            label="Pause Studies"
+                                                            onClick={() => pauseChildEducation(child.id)}
+                                                        />
+                                                    </div>
                                                 ) : (
-                                                    <Button
-                                                        variant="primary"
-                                                        label="Resume Studies"
-                                                        onClick={() => resumeChildEducation(child.id)}
-                                                    />
+                                                    <p className="text-sm text-stone-600">
+                                                        Withdrawn for this quarter. Tuition was not refunded.
+                                                        You may pay to restart studies next quarter.
+                                                    </p>
                                                 )
                                             )}
 
@@ -104,7 +108,9 @@ export const ChildrenComponent = () => {
                                             <div className="text-sm text-stone-700">
                                                 Study Status: {child.isStudying
                                                     ? "Currently studying"
-                                                    : "Studies paused"}
+                                                    : child.tuitionDecision === "paid"
+                                                        ? "Withdrawn for this quarter"
+                                                        : "Not studying"}
                                             </div>
                                         </>
                                     )}

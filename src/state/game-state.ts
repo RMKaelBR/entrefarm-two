@@ -1,10 +1,15 @@
 import {
     childNeedsQuarterlyTuitionDecision,
+    markChildTuitionPaid,
+    optOutChildEducation as transitionChildEducationOptOut,
     pauseChildEducation,
-    resumeChildEducation,
     setChildLaborJob,
 } from '@/game-data/family/education-functions';
-import { createChild, updateChildById } from '@/game-data/family/family-functions';
+import {
+    createChild,
+    prepareChildForHousehold,
+    updateChildById,
+} from '@/game-data/family/family-functions';
 import { addCurrency, subCurrency } from '@/game-data/money/calculate-money';
 import { advanceWorldTime, advanceYear } from '@/game-data/time/advance-time';
 import { Child, GameState, QUARTERLY_TUITION_COST } from '@/game-data/types';
@@ -19,16 +24,12 @@ const initialState = {
   children: [createChild(), createChild()],
 } as const;
 
-export const isQuarterStart = (month: number) => month % 3 === 1;
-
 export const getTimeAdvanceBlockReason = (
-    state: Pick<GameState, 'month' | 'children'>
+    state: Pick<GameState, 'children'>
 ) => {
-    if (!isQuarterStart(state.month)) return null;
-
     const unresolved = state.children.some(childNeedsQuarterlyTuitionDecision);
     return unresolved
-        ? 'Resolve tuition for each adult child before advancing time.'
+        ? 'Pay tuition or opt out for each eligible adult child before advancing time.'
         : null;
 };
 
@@ -101,7 +102,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     addChild: (child: Child) => {
         set((state) => ({
             ...state,
-            children: [...state.children, createChild(child)],
+            children: [...state.children, prepareChildForHousehold(child)],
         }));
     },
     removeChild: (childId: string) => {
@@ -110,44 +111,42 @@ export const useGameStore = create<GameState>((set, get) => ({
             children: state.children.filter((c) => c.id !== childId),
         }));
     },
+    payChildTuition: (childId: Child["id"]) => {
+        set((state) => {
+            const child = state.children.find((item) => item.id === childId);
+            if (!child || !childNeedsQuarterlyTuitionDecision(child)) {
+                return state;
+            }
+
+            const nextWallet = subCurrency(state.wallet, QUARTERLY_TUITION_COST);
+            if (nextWallet.gold < 0 || nextWallet.silver < 0) return state;
+
+            return {
+                ...state,
+                wallet: nextWallet,
+                children: updateChildById(
+                    state.children,
+                    childId,
+                    markChildTuitionPaid
+                ),
+            };
+        });
+    },
+    optOutChildEducation: (childId: Child["id"]) => {
+        set((state) => ({
+            ...state,
+            children: updateChildById(
+                state.children,
+                childId,
+                transitionChildEducationOptOut
+            ),
+        }));
+    },
     pauseChildEducation: (childId: Child["id"]) => {
         set((state) => ({
             ...state,
             children: updateChildById(state.children, childId, pauseChildEducation)
         }));
-    },
-    resumeChildEducation: (childId: Child["id"]) => {
-        set((state) => {
-            const child = state.children.find((item) => item.id === childId);
-            if (!child || child.stage !== 'adult_child' || !child.education) {
-                return state;
-            }
-
-            const alreadyPaid = child.tuitionCommittedForQuarter === true;
-            if (!alreadyPaid && !isQuarterStart(state.month)) {
-                return state;
-            }
-
-            if (alreadyPaid) {
-                return {
-                    ...state,
-                    children: updateChildById(state.children, childId, resumeChildEducation),
-                };
-            }
-
-            const nextWallet = subCurrency(state.wallet, QUARTERLY_TUITION_COST);
-            const canAfford = nextWallet.gold >= 0 && nextWallet.silver >= 0;
-            if (!canAfford) return state;
-
-            return {
-                ...state,
-                wallet: nextWallet,
-                children: updateChildById(state.children, childId, (child) => ({
-                    ...resumeChildEducation(child),
-                    tuitionCommittedForQuarter: true,
-                }))
-            };
-        });
     },
     setChildLaborJob: (childId: Child["id"], laborJob: Child["laborJob"]) => {
         set((state) => ({
