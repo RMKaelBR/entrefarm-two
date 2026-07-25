@@ -1,4 +1,4 @@
-import { TokenTrack } from "@/game/types";
+import { TokenTrack } from "@/game-data/types";
 
 export const nearlyAdult: TokenTrack = {
     timeTokens: 6,

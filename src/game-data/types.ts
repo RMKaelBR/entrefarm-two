@@ -14,8 +14,9 @@ export type GameState = {
     initFamily: () => void;
     addChild: (child: Child) => void;
     removeChild: (childId: Child["id"]) => void;
+    payChildTuition: (childId: Child["id"]) => void;
+    optOutChildEducation: (childId: Child["id"]) => void;
     pauseChildEducation: (childId: Child["id"]) => void;
-    resumeChildEducation: (childId: Child["id"]) => void;
     setChildLaborJob: (childId: Child["id"], laborJob: Child["laborJob"]) => void;
     resetAll: () => void;
 };
@@ -24,6 +25,8 @@ export type Currency = {
   gold: number;   // whole gold
   silver: number; // 0..9 ideally (normalized)
 };
+
+export const QUARTERLY_TUITION_COST: Currency = { gold: 4, silver: 0 };
 
 type PersonStage = "child" | "adult_child";
 export const GENDERS = ["male", "female"] as const;
@@ -52,12 +55,15 @@ export const LABOR_PROFESSIONS = [
 
 export type LaborProfession = typeof LABOR_PROFESSIONS[number];
 
+export type TuitionDecision = "pending" | "paid" | "opted_out";
+
 export type Child = {
   id: string;
   name?: string;
   stage: PersonStage;
   gender: Gender;
   isStudying?: boolean;
+  tuitionDecision?: TuitionDecision;
   profession?: ProfessionCode;
   laborJob?: LaborProfession | null;
   

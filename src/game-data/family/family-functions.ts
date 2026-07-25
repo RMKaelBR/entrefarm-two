@@ -1,7 +1,11 @@
-import { Child, GENDERS } from "@/game/types";
+import { Child, GENDERS } from "@/game-data/types";
 import { addTimeToken } from "../time/advance-time";
 import { nearlyAdult } from "./utils/family-constants";
-import { assignRandomProfession } from "./education-functions";
+import {
+  assignRandomProfession,
+  canAdvanceEducationThisQuarter,
+  resetQuarterTuition,
+} from "./education-functions";
 
 const makeId = () => crypto.randomUUID();
 
@@ -14,16 +18,36 @@ const createChild = (overrides?: Partial<Child>): Child => {
     laborJob: null,
     maturity: nearlyAdult,
     education: null,
-    isStudying: true,
+    isStudying: false,
   };
 
   return {
     ...initialChild,
-    education: null,
-    isStudying: true,
     ...overrides,
   };
 };
+
+function prepareChildForHousehold(child: Child): Child {
+  if (child.stage !== "adult_child") return child;
+
+  const hasActiveEducation =
+    child.education
+    && child.education.progress < child.education.progressMax;
+
+  if (hasActiveEducation) {
+    return {
+      ...child,
+      tuitionDecision: "pending",
+      isStudying: false,
+    };
+  }
+
+  return {
+    ...child,
+    tuitionDecision: undefined,
+    isStudying: false,
+  };
+}
 
 /**
  * Ages children by 1 maturity tick (quarterly).
@@ -50,18 +74,19 @@ function childrenAgeTicker(children: Child[]): Child[] {
 }
 
 export function advanceEducationQuarter(child: Child): Child {
-  if (!child.education || !child.isStudying) return child;
+  if (!canAdvanceEducationThisQuarter(child)) return resetQuarterTuition(child);
 
-  const progress = Math.min(child.education.progress + 1, child.education.progressMax);
-
-  const finished = progress >= child.education.progressMax;
-
-  return {
+  const education = child.education!;
+  const progress = Math.min(education.progress + 1, education.progressMax);
+  const finished = progress >= education.progressMax;
+  const progressed = {
     ...child,
-    education: { ...child.education, progress },
-    isStudying: finished ? false : child.isStudying,
-    // optional: when finished, stage update / unlock laborProfession / etc
+    education: { ...education, progress },
   };
+
+  return finished
+    ? { ...progressed, tuitionDecision: undefined, isStudying: false }
+    : resetQuarterTuition(progressed);
 }
 
 export function tickChildrenQuarter(children: Child[]): Child[] {
@@ -85,6 +110,7 @@ function updateChildById(
 
 export {
   createChild,
+  prepareChildForHousehold,
   childrenAgeTicker,
   updateChildById,
 }
