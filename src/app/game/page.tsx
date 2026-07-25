@@ -1,6 +1,6 @@
 'use client';
 
-import { useGameStore } from "@/state/game-state";
+import { getTimeAdvanceBlockReason, useGameStore } from "@/state/game-state";
 import { useState } from "react";
 import { Button } from "./components/button";
 
@@ -8,6 +8,7 @@ const GamePage = () => {
     const nextYear = useGameStore((state) => state.nextYear);
     const advanceWorldTime = useGameStore((state) => state.advanceWorldTime);
     const resetAll = useGameStore((state) => state.resetAll);
+    const timeAdvanceBlockReason = useGameStore((state) => getTimeAdvanceBlockReason(state));
 
     const earn = useGameStore((state) => state.earn);
     const spend = useGameStore((state) => state.spend);
@@ -24,10 +25,16 @@ const GamePage = () => {
             <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={nextYear}>
                 Next Year
             </button>
-            <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={advanceWorldTime}>
+            <button
+                className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={Boolean(timeAdvanceBlockReason)}
+                onClick={advanceWorldTime}
+            >
                 Next Month
-
             </button>
+            {timeAdvanceBlockReason && (
+                <p className="mx-2 text-sm text-red-700">{timeAdvanceBlockReason}</p>
+            )}
             <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={resetAll}>
                 Reset All
             </button>

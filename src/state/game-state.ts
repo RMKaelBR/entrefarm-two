@@ -1,8 +1,13 @@
-import { pauseChildEducation, resumeChildEducation, setChildLaborJob } from '@/game/family/education-functions';
-import { createChild, updateChildById } from '@/game/family/family-functions';
-import { addCurrency, subCurrency } from '@/game/money/calculate-money';
-import { advanceWorldTime, advanceYear } from '@/game/time/advance-time';
-import { GameState, Child } from '@/game/types';
+import {
+    childNeedsQuarterlyTuitionDecision,
+    pauseChildEducation,
+    resumeChildEducation,
+    setChildLaborJob,
+} from '@/game-data/family/education-functions';
+import { createChild, updateChildById } from '@/game-data/family/family-functions';
+import { addCurrency, subCurrency } from '@/game-data/money/calculate-money';
+import { advanceWorldTime, advanceYear } from '@/game-data/time/advance-time';
+import { Child, GameState, QUARTERLY_TUITION_COST } from '@/game-data/types';
 import { create } from 'zustand';
 
 const initialState = {
@@ -14,7 +19,18 @@ const initialState = {
   children: [createChild(), createChild()],
 } as const;
 
-const isQuarterStart = (month: number) => month % 3 === 1;
+export const isQuarterStart = (month: number) => month % 3 === 1;
+
+export const getTimeAdvanceBlockReason = (
+    state: Pick<GameState, 'month' | 'children'>
+) => {
+    if (!isQuarterStart(state.month)) return null;
+
+    const unresolved = state.children.some(childNeedsQuarterlyTuitionDecision);
+    return unresolved
+        ? 'Resolve tuition for each adult child before advancing time.'
+        : null;
+};
 
 export const useGameStore = create<GameState>((set, get) => ({
     ...initialState,
@@ -32,10 +48,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     children: [createChild(), createChild()],
 
     // TIME (actions)
-    advanceWorldTime: () => set((state) => ({
+    advanceWorldTime: () => set((state) => {
+        const blockReason = getTimeAdvanceBlockReason(state);
+        if (blockReason) return state;
+
+        return {
             ...state,
             ...advanceWorldTime(state)
-        })),
+        };
+    }),
 
     nextYear: () =>
         set((state) => ({
@@ -96,11 +117,37 @@ export const useGameStore = create<GameState>((set, get) => ({
         }));
     },
     resumeChildEducation: (childId: Child["id"]) => {
-        if (!isQuarterStart(get().month)) return;
-        set((state) => ({
-            ...state,
-            children: updateChildById(state.children, childId, resumeChildEducation)
-        }));
+        set((state) => {
+            const child = state.children.find((item) => item.id === childId);
+            if (!child || child.stage !== 'adult_child' || !child.education) {
+                return state;
+            }
+
+            const alreadyPaid = child.tuitionCommittedForQuarter === true;
+            if (!alreadyPaid && !isQuarterStart(state.month)) {
+                return state;
+            }
+
+            if (alreadyPaid) {
+                return {
+                    ...state,
+                    children: updateChildById(state.children, childId, resumeChildEducation),
+                };
+            }
+
+            const nextWallet = subCurrency(state.wallet, QUARTERLY_TUITION_COST);
+            const canAfford = nextWallet.gold >= 0 && nextWallet.silver >= 0;
+            if (!canAfford) return state;
+
+            return {
+                ...state,
+                wallet: nextWallet,
+                children: updateChildById(state.children, childId, (child) => ({
+                    ...resumeChildEducation(child),
+                    tuitionCommittedForQuarter: true,
+                }))
+            };
+        });
     },
     setChildLaborJob: (childId: Child["id"], laborJob: Child["laborJob"]) => {
         set((state) => ({

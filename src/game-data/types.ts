@@ -25,6 +25,8 @@ export type Currency = {
   silver: number; // 0..9 ideally (normalized)
 };
 
+export const QUARTERLY_TUITION_COST: Currency = { gold: 4, silver: 0 };
+
 type PersonStage = "child" | "adult_child";
 export const GENDERS = ["male", "female"] as const;
 export type Gender = typeof GENDERS[number];
@@ -58,6 +60,7 @@ export type Child = {
   stage: PersonStage;
   gender: Gender;
   isStudying?: boolean;
+  tuitionCommittedForQuarter?: boolean;
   profession?: ProfessionCode;
   laborJob?: LaborProfession | null;
   

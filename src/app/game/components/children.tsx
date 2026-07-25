@@ -1,4 +1,6 @@
 import { useGameStore } from "@/state/game-state";
+import { subCurrency } from "@/game-data/money/calculate-money";
+import { QUARTERLY_TUITION_COST } from "@/game-data/types";
 import { Button } from "./button";
 
 export const ChildrenComponent = () => {
@@ -6,6 +8,7 @@ export const ChildrenComponent = () => {
     const pauseChildEducation = useGameStore((state) => state.pauseChildEducation);
     const resumeChildEducation = useGameStore((state) => state.resumeChildEducation);
     const month = useGameStore((state) => state.month);
+    const wallet = useGameStore((state) => state.wallet);
     const isQuarterStart = month % 3 === 1;
 
     return (
@@ -19,18 +22,44 @@ export const ChildrenComponent = () => {
                             <div>Stage: {child.stage}</div>
                             <div>Maturity: {child.maturity.timeTokens} / {child.maturity.timeTokensMax}</div>
                             {child.stage === "adult_child" && (
-                                <div>
+                                <div className="space-y-2">
                                     <div>Profession: {child.profession}</div>
                                     <div>Education Progress: {child.education ? `${child.education.progress} / ${child.education.progressMax}` : "N/A"}</div>
+                                    <div>Tuition: {QUARTERLY_TUITION_COST.gold} gold / quarter</div>
+                                    <div>
+                                        Tuition Status: {child.tuitionCommittedForQuarter ? "Paid this quarter" : "Unpaid"}
+                                    </div>
+                                    {child.education && !child.tuitionCommittedForQuarter && (
+                                        <div className="text-sm text-stone-600">
+                                            {isQuarterStart
+                                                ? (subCurrency(wallet, QUARTERLY_TUITION_COST).gold >= 0
+                                                    ? "Quarter start: pay tuition to continue studies."
+                                                    : `Need ${QUARTERLY_TUITION_COST.gold} gold in your wallet to resume.`)
+                                                : "Next tuition decision opens at the start of the next quarter."}
+                                        </div>
+                                    )}
                                     {child.isStudying ? (
                                         <Button variant="warning" label="Pause Studies" onClick={() => pauseChildEducation(child.id)} />
                                     ) : (
-                                        <Button variant={isQuarterStart ? "primary" : "secondary"} label="Resume Studies" onClick={() => resumeChildEducation(child.id)} />
+                                        <Button
+                                            variant={child.tuitionCommittedForQuarter || isQuarterStart ? "primary" : "secondary"}
+                                            disabled={
+                                                !child.tuitionCommittedForQuarter
+                                                && (!isQuarterStart || subCurrency(wallet, QUARTERLY_TUITION_COST).gold < 0)
+                                            }
+                                            label={
+                                                child.tuitionCommittedForQuarter
+                                                    ? "Resume Studies"
+                                                    : (subCurrency(wallet, QUARTERLY_TUITION_COST).gold >= 0
+                                                        ? "Pay 4 Gold To Resume"
+                                                        : "Need 4 Gold")
+                                            }
+                                            onClick={() => resumeChildEducation(child.id)}
+                                        />
                                     )}
-                                    {/* ONLY FOR THE LULZZZ */}
-                                    <div className="flex flex-col mt-4 gap-2"> 
-                                        <span>child is good: {child.isStudying ? "Yes 👍" : "NO 😠"}</span>
-                                        <span>child is a bum: {child.isStudying ? "No" : "Yes"}</span>
+                                    <div className="flex flex-col mt-4 gap-1 text-sm text-stone-700">
+                                        <span>Study Status: {child.isStudying ? "Currently studying" : "Studies paused"}</span>
+                                        <span>Decision Window: {isQuarterStart ? "Open this month" : "Closed until next quarter"}</span>
                                     </div>
                                 </div>
                                 

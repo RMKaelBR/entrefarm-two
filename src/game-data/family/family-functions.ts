@@ -1,7 +1,11 @@
-import { Child, GENDERS } from "@/game/types";
+import { Child, GENDERS } from "@/game-data/types";
 import { addTimeToken } from "../time/advance-time";
 import { nearlyAdult } from "./utils/family-constants";
-import { assignRandomProfession } from "./education-functions";
+import {
+  assignRandomProfession,
+  canAdvanceEducationThisQuarter,
+  resetQuarterTuition,
+} from "./education-functions";
 
 const makeId = () => crypto.randomUUID();
 
@@ -15,12 +19,11 @@ const createChild = (overrides?: Partial<Child>): Child => {
     maturity: nearlyAdult,
     education: null,
     isStudying: true,
+    tuitionCommittedForQuarter: false,
   };
 
   return {
     ...initialChild,
-    education: null,
-    isStudying: true,
     ...overrides,
   };
 };
@@ -50,17 +53,16 @@ function childrenAgeTicker(children: Child[]): Child[] {
 }
 
 export function advanceEducationQuarter(child: Child): Child {
-  if (!child.education || !child.isStudying) return child;
+  if (!child.education) return child;
+  if (!canAdvanceEducationThisQuarter(child)) return resetQuarterTuition(child);
 
   const progress = Math.min(child.education.progress + 1, child.education.progressMax);
-
   const finished = progress >= child.education.progressMax;
 
   return {
-    ...child,
+    ...resetQuarterTuition(child),
     education: { ...child.education, progress },
     isStudying: finished ? false : child.isStudying,
-    // optional: when finished, stage update / unlock laborProfession / etc
   };
 }
 
