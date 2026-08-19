@@ -31,6 +31,8 @@ export function DiceRoller() {
         const diceBox = new DiceBoxConstructor({
           container: '#dice-box',
           assetPath: '/assets/',
+          theme: 'smooth-pip',
+          scale: 9,
         });
 
         await diceBox.init();
@@ -67,7 +69,7 @@ export function DiceRoller() {
     setStatus({ kind: 'rolling' });
 
     try {
-      const results = await diceBox.roll('1d6');
+      const results = await diceBox.roll('1dpip');
       if (!mountedRef.current) return;
 
       setResult(results[0]?.value ?? null);
@@ -82,7 +84,7 @@ export function DiceRoller() {
   const isBusy = status.kind === 'loading' || status.kind === 'rolling';
 
   return (
-    <section className="ml-auto w-full max-w-80 space-y-3" aria-labelledby="dice-roller-title">
+    <section className="ml-auto w-full max-w-60 space-y-3" aria-labelledby="dice-roller-title">
       <div className="flex items-center gap-3">
         <h2 id="dice-roller-title" className="text-lg font-semibold">
           Dice Roller

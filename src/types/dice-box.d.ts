@@ -15,6 +15,8 @@ declare module '@3d-dice/dice-box' {
   export type DiceBoxConfig = {
     container: string;
     assetPath: string;
+    theme?: string;
+    scale?: number;
   };
 
   export default class DiceBox {
