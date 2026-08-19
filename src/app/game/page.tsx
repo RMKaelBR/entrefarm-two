@@ -3,6 +3,7 @@
 import { getTimeAdvanceBlockReason, useGameStore } from "@/state/game-state";
 import { useState } from "react";
 import { Button } from "./components/button";
+import { DiceRoller } from "./components/dice-box/dice-box";
 
 const GamePage = () => {
     const nextYear = useGameStore((state) => state.nextYear);
@@ -38,6 +39,10 @@ const GamePage = () => {
             <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={resetAll}>
                 Reset All
             </button>
+
+            <section className="fixed top-0 right-0 m-4">
+                <DiceRoller />
+            </section>
 
             {/* Currency Inputs */}
             <div className="flex gap-2 items-end">
