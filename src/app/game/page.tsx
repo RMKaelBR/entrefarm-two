@@ -4,6 +4,7 @@ import { getTimeAdvanceBlockReason, useGameStore } from "@/state/game-state";
 import { useState } from "react";
 import { Button } from "./components/button";
 import { DiceRoller } from "./components/dice-box/dice-box";
+import { LandComponent } from "./components/land/land";
 
 const GamePage = () => {
     const nextYear = useGameStore((state) => state.nextYear);
@@ -21,7 +22,7 @@ const GamePage = () => {
 
     const amount = { gold: Number(gold), silver: Number(silver) };
     return (
-        <section className="flex">
+        <section className="flex gap-4">
             <div className="space-y-3 flex-col">
                 <div>Game Page</div>
                 <div className="flex">
@@ -111,7 +112,8 @@ const GamePage = () => {
                     </div>
                 </div>
             </div>
-            <section className="m-4">
+            <section className="m-4 space-y-4">
+                <LandComponent />
                 <DiceRoller />
             </section>
         </section>

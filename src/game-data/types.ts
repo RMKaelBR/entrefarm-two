@@ -1,9 +1,12 @@
+import type { Land } from "./land/land-types";
+
 export type GameState = {
     year: number;
     quarter: number;
     month: number;
     wallet: Currency;
     bank: Currency;
+    land: Land;
     children: Child[];
     advanceWorldTime: () => void;
     nextYear: () => void;
@@ -18,6 +21,8 @@ export type GameState = {
     optOutChildEducation: (childId: Child["id"]) => void;
     pauseChildEducation: (childId: Child["id"]) => void;
     setChildLaborJob: (childId: Child["id"], laborJob: Child["laborJob"]) => void;
+    clearOwnedLand: () => boolean;
+    irrigateOwnedLand: () => boolean;
     resetAll: () => void;
 };
 
