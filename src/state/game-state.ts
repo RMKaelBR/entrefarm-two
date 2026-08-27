@@ -1,3 +1,4 @@
+import { create } from 'zustand';
 import {
     childNeedsQuarterlyTuitionDecision,
     markChildTuitionPaid,
@@ -13,7 +14,17 @@ import {
 import { addCurrency, subCurrency } from '@/game-data/money/calculate-money';
 import { advanceWorldTime, advanceYear } from '@/game-data/time/advance-time';
 import { Child, GameState, QUARTERLY_TUITION_COST } from '@/game-data/types';
-import { create } from 'zustand';
+import {
+    CLEARING_COST_GOLD,
+    IRRIGATION_COST_GOLD,
+} from '@/game-data/land/land-data';
+import {
+    canClearLand,
+    canIrrigateLand,
+    clearLand,
+    irrigateLand,
+    createLand,
+} from '@/game-data/land/land-functions';
 
 const initialState = {
   year: 1,
@@ -21,6 +32,7 @@ const initialState = {
   month: 1,
   wallet: { gold: 0, silver: 0 },
   bank: { gold: 0, silver: 0 },
+  land: createLand("forestedPlains"),
   children: [createChild(), createChild()],
 } as const;
 
@@ -157,10 +169,50 @@ export const useGameStore = create<GameState>((set, get) => ({
         }));
     },
 
+    // LAND (actions)
+    clearOwnedLand: () => {
+        let committed = false;
+
+        set((state) => {
+            if (!canClearLand(state.land)) return state;
+
+            const nextWallet = subCurrency(state.wallet, CLEARING_COST_GOLD);
+            if (nextWallet.gold < 0 || nextWallet.silver < 0) return state;
+
+            committed = true;
+            return {
+                ...state,
+                wallet: nextWallet,
+                land: clearLand(state.land),
+            };
+        });
+        return committed;
+    },
+
+    irrigateOwnedLand: () => {
+        let committed = false;
+
+        set((state) => {
+            if (!canIrrigateLand(state.land)) return state;
+
+            const nextWallet = subCurrency(state.wallet, IRRIGATION_COST_GOLD);
+            if (nextWallet.gold < 0 || nextWallet.silver < 0) return state;
+
+            committed = true;
+            return {
+                ...state,
+                wallet: nextWallet,
+                land: irrigateLand(state.land),
+            };
+        });
+        return committed;
+    },
+
     // RESET ALL
     resetAll: () =>
         set(() => ({
             ...initialState,
+            land: createLand("forestedPlains"),
             children: [createChild(), createChild()], // reset with new children
         })),
 }));

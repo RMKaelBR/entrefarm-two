@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { createLand } from "@/game-data/land/land-functions";
 import type { Child } from "@/game-data/types";
 import { useGameStore } from "./game-state";
 
@@ -127,5 +128,110 @@ describe("adult-child education store actions", () => {
       tuitionDecision: "pending",
       isStudying: false,
     });
+  });
+});
+
+describe("owned land store actions", () => {
+  beforeEach(() => {
+    useGameStore.setState({
+      wallet: { gold: 0, silver: 0 },
+      land: createLand("forestedPlains"),
+    });
+  });
+
+  it("starts and resets with a fresh Forested Plains parcel", () => {
+    const initialLand = useGameStore.getState().land;
+
+    expect(initialLand).toEqual(createLand("forestedPlains"));
+
+    useGameStore.setState({
+      wallet: { gold: 20, silver: 0 },
+      land: createLand("riverlands"),
+    });
+    const developedLand = useGameStore.getState().land;
+
+    useGameStore.getState().resetAll();
+
+    const resetState = useGameStore.getState();
+    expect(resetState.wallet).toEqual({ gold: 0, silver: 0 });
+    expect(resetState.land).toEqual(createLand("forestedPlains"));
+    expect(resetState.land).not.toBe(initialLand);
+    expect(resetState.land).not.toBe(developedLand);
+  });
+
+  it("pays to clear and then irrigate the owned parcel", () => {
+    useGameStore.setState({ wallet: { gold: 20, silver: 0 } });
+
+    expect(useGameStore.getState().clearOwnedLand()).toBe(true);
+    expect(useGameStore.getState()).toMatchObject({
+      wallet: { gold: 10, silver: 0 },
+      land: {
+        origin: "forestedPlains",
+        isCleared: true,
+        isIrrigated: false,
+        currentValue: { gold: 40, silver: 0 },
+      },
+    });
+
+    expect(useGameStore.getState().irrigateOwnedLand()).toBe(true);
+    expect(useGameStore.getState()).toMatchObject({
+      wallet: { gold: 0, silver: 0 },
+      land: {
+        origin: "forestedPlains",
+        isCleared: true,
+        isIrrigated: true,
+        currentValue: { gold: 50, silver: 0 },
+      },
+    });
+  });
+
+  it("rejects clearing when funds are insufficient without changing state", () => {
+    useGameStore.setState({ wallet: { gold: 9, silver: 9 } });
+    const before = useGameStore.getState();
+
+    expect(before.clearOwnedLand()).toBe(false);
+    expect(useGameStore.getState().wallet).toBe(before.wallet);
+    expect(useGameStore.getState().land).toBe(before.land);
+  });
+
+  it("rejects irrigation before clearing without changing state", () => {
+    const before = useGameStore.getState();
+
+    expect(before.irrigateOwnedLand()).toBe(false);
+    expect(useGameStore.getState().wallet).toBe(before.wallet);
+    expect(useGameStore.getState().land).toBe(before.land);
+  });
+
+  it("rejects repeated clearing without charging again", () => {
+    useGameStore.setState({ wallet: { gold: 20, silver: 0 } });
+    expect(useGameStore.getState().clearOwnedLand()).toBe(true);
+    const before = useGameStore.getState();
+
+    expect(before.clearOwnedLand()).toBe(false);
+    expect(useGameStore.getState().wallet).toBe(before.wallet);
+    expect(useGameStore.getState().land).toBe(before.land);
+  });
+
+  it("rejects irrigation when funds are insufficient after clearing", () => {
+    useGameStore.setState({ wallet: { gold: 10, silver: 0 } });
+    expect(useGameStore.getState().clearOwnedLand()).toBe(true);
+    const before = useGameStore.getState();
+
+    expect(before.irrigateOwnedLand()).toBe(false);
+    expect(useGameStore.getState().wallet).toBe(before.wallet);
+    expect(useGameStore.getState().land).toBe(before.land);
+  });
+
+  it("rejects development actions on fully developed land without charging", () => {
+    useGameStore.setState({
+      wallet: { gold: 10, silver: 0 },
+      land: createLand("riverlands"),
+    });
+    const before = useGameStore.getState();
+
+    expect(before.clearOwnedLand()).toBe(false);
+    expect(before.irrigateOwnedLand()).toBe(false);
+    expect(useGameStore.getState().wallet).toBe(before.wallet);
+    expect(useGameStore.getState().land).toBe(before.land);
   });
 });
