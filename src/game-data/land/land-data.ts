@@ -32,17 +32,19 @@ export const IRRIGATION_COST_GOLD = {
 
 type LandInitialState = Land extends infer LandVariant
     ? LandVariant extends Land
-        ? Omit<LandVariant, "origin">
+        ? Omit<LandVariant, "id" | "origin">
         : never
     : never;
 
 type LandPresetTable = Record<LandOrigin, {
+    emoji: string;
     label: string;
     initialState: LandInitialState;
 }>;
 
 export const LAND_PRESETS = {
     foothills: {
+        emoji: "⛰",
         label: "Foothills",
         initialState: {
             category: "foothills",
@@ -52,6 +54,7 @@ export const LAND_PRESETS = {
         }
     },
     forestedPlains: {
+        emoji: "🌳",
         label: "Forested Plains",
         initialState: {
             category: "plains",
@@ -61,6 +64,7 @@ export const LAND_PRESETS = {
         }
     },
     plains: {
+        emoji: "☀",
         label: "Plains",
         initialState: {
             category: "plains",
@@ -70,6 +74,7 @@ export const LAND_PRESETS = {
         }
     },
     riverlands: {
+        emoji: "🌊",
         label: "Riverlands",
         initialState: {
             category: "plains",

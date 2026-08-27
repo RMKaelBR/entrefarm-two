@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     CLEARING_COST_GOLD,
     IRRIGATION_COST_GOLD,
+    LAND_PRESETS,
 } from "./land-data";
 import {
     canClearLand,
@@ -28,6 +29,7 @@ describe("createLand", () => {
         "creates the %s preset",
         (origin, category, isCleared, isIrrigated, currentValue) => {
             expect(createLand(origin)).toEqual({
+                id: expect.any(String),
                 origin,
                 category,
                 isCleared,
@@ -42,6 +44,7 @@ describe("createLand", () => {
         const second = createLand("plains");
 
         expect(first).not.toBe(second);
+        expect(first.id).not.toBe(second.id);
         expect(first.currentValue).not.toBe(second.currentValue);
     });
 });
@@ -53,6 +56,7 @@ describe("land development", () => {
         const irrigated = irrigateLand(cleared);
 
         expect(cleared).toEqual({
+            id: forested.id,
             origin: "forestedPlains",
             category: "plains",
             isCleared: true,
@@ -60,6 +64,7 @@ describe("land development", () => {
             currentValue: gold(40),
         });
         expect(irrigated).toEqual({
+            id: forested.id,
             origin: "forestedPlains",
             category: "plains",
             isCleared: true,
@@ -67,16 +72,20 @@ describe("land development", () => {
             currentValue: gold(50),
         });
         expect(forested.currentValue).toEqual(gold(30));
+        expect(cleared.id).toBe(forested.id);
+        expect(irrigated.id).toBe(forested.id);
         expect(cleared).not.toBe(forested);
         expect(irrigated).not.toBe(cleared);
     });
 
     it("uses Currency arithmetic for adjusted values", () => {
+        const forested = createLand("forestedPlains");
         const adjusted = withLandCurrentValue(
-            createLand("forestedPlains"),
+            forested,
             gold(31, 5),
         );
 
+        expect(adjusted.id).toBe(forested.id);
         expect(clearLand(adjusted).currentValue).toEqual(gold(41, 5));
     });
 
@@ -110,6 +119,20 @@ describe("land development", () => {
 });
 
 describe("land rules", () => {
+    it("defines an emoji for every land origin", () => {
+        expect(Object.fromEntries(
+            Object.entries(LAND_PRESETS).map(([origin, preset]) => [
+                origin,
+                preset.emoji,
+            ]),
+        )).toEqual({
+            foothills: "⛰",
+            forestedPlains: "🌳",
+            plains: "☀",
+            riverlands: "🌊",
+        });
+    });
+
     it.each([
         ["foothills", "upland", 1.5],
         ["plains", "lowland", 1],
