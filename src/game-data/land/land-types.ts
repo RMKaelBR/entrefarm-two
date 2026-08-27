@@ -12,6 +12,7 @@ export type LandCategory = "foothills" | "plains";
 export type Elevation = "upland" | "lowland";
 
 type LandIdentity = {
+    id: string;
     origin: LandOrigin;
     currentValue: Currency;
 }

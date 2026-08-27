@@ -4,27 +4,32 @@ import type { Currency } from "../types";
 import type { Elevation, Land, LandOrigin, PlainsLand } from "./land-types";
 
 export function createLand(origin: LandOrigin): Land {
+    const id = crypto.randomUUID();
     switch (origin) {
         case "foothills":
             return {
+                id,
                 origin,
                 ...LAND_PRESETS.foothills.initialState,
                 currentValue: { ...LAND_PRESETS.foothills.initialState.currentValue },
             };
         case "forestedPlains":
             return {
+                id,
                 origin,
                 ...LAND_PRESETS.forestedPlains.initialState,
                 currentValue: { ...LAND_PRESETS.forestedPlains.initialState.currentValue },
             };
         case "plains":
             return {
+                id,
                 origin,
                 ...LAND_PRESETS.plains.initialState,
                 currentValue: { ...LAND_PRESETS.plains.initialState.currentValue },
             };
         case "riverlands":
             return {
+                id,
                 origin,
                 ...LAND_PRESETS.riverlands.initialState,
                 currentValue: { ...LAND_PRESETS.riverlands.initialState.currentValue },

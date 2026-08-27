@@ -84,7 +84,7 @@ export function DiceRoller() {
   const isBusy = status.kind === 'loading' || status.kind === 'rolling';
 
   return (
-    <section className="ml-auto w-full max-w-60 space-y-3" aria-labelledby="dice-roller-title">
+    <section className="w-full max-w-60 space-y-3" aria-labelledby="dice-roller-title">
       <div className="flex items-center gap-3">
         <h2 id="dice-roller-title" className="text-lg font-semibold">
           Dice Roller

@@ -14,6 +14,7 @@ import {
 import { addCurrency, subCurrency } from '@/game-data/money/calculate-money';
 import { advanceWorldTime, advanceYear } from '@/game-data/time/advance-time';
 import { Child, GameState, QUARTERLY_TUITION_COST } from '@/game-data/types';
+import { LAND_ORIGINS } from '@/game-data/land/land-types';
 import {
     CLEARING_COST_GOLD,
     IRRIGATION_COST_GOLD,
@@ -26,13 +27,16 @@ import {
     createLand,
 } from '@/game-data/land/land-functions';
 
+const createInitialLands = () =>
+    LAND_ORIGINS.map((origin) => createLand(origin));
+
 const initialState = {
   year: 1,
   quarter: 1,
   month: 1,
   wallet: { gold: 0, silver: 0 },
   bank: { gold: 0, silver: 0 },
-  land: createLand("forestedPlains"),
+  lands: createInitialLands(),
   children: [createChild(), createChild()],
 } as const;
 
@@ -170,11 +174,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     },
 
     // LAND (actions)
-    clearOwnedLand: () => {
+    clearOwnedLand: (landId) => {
         let committed = false;
 
         set((state) => {
-            if (!canClearLand(state.land)) return state;
+            const target = state.lands.find((land) => land.id === landId);
+            if (!target || !canClearLand(target)) return state;
 
             const nextWallet = subCurrency(state.wallet, CLEARING_COST_GOLD);
             if (nextWallet.gold < 0 || nextWallet.silver < 0) return state;
@@ -183,17 +188,21 @@ export const useGameStore = create<GameState>((set, get) => ({
             return {
                 ...state,
                 wallet: nextWallet,
-                land: clearLand(state.land),
+                lands: state.lands.map((land) =>
+                    land.id === landId ? clearLand(land) : land
+                ),
             };
         });
+
         return committed;
     },
 
-    irrigateOwnedLand: () => {
+    irrigateOwnedLand: (landId) => {
         let committed = false;
 
         set((state) => {
-            if (!canIrrigateLand(state.land)) return state;
+            const target = state.lands.find((land) => land.id === landId);
+            if (!target || !canIrrigateLand(target)) return state;
 
             const nextWallet = subCurrency(state.wallet, IRRIGATION_COST_GOLD);
             if (nextWallet.gold < 0 || nextWallet.silver < 0) return state;
@@ -202,7 +211,9 @@ export const useGameStore = create<GameState>((set, get) => ({
             return {
                 ...state,
                 wallet: nextWallet,
-                land: irrigateLand(state.land),
+                lands: state.lands.map((land) =>
+                    land.id === landId ? irrigateLand(land) : land
+                ),
             };
         });
         return committed;
@@ -212,7 +223,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     resetAll: () =>
         set(() => ({
             ...initialState,
-            land: createLand("forestedPlains"),
+            lands: createInitialLands(),
             children: [createChild(), createChild()], // reset with new children
         })),
 }));
