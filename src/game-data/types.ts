@@ -8,6 +8,8 @@ export type GameState = {
     bank: Currency;
     lands: Land[];
     children: Child[];
+    hasActiveGame: boolean;
+    startNewGame: () => void;
     advanceWorldTime: () => void;
     nextYear: () => void;
     earn: (amount: Currency) => void;

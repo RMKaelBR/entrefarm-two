@@ -2,12 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useGameStore } from '@/state/game-state';
 
 export default function Home() {
   const router = useRouter();
+  const startNewGame = useGameStore((state) => state.startNewGame);
   const [continueClicked, setContinueClicked] = useState(false);
 
   const handleNewGame = () => {
+    startNewGame();
     router.push('/game');
   };
 

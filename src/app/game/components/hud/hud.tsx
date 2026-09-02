@@ -1,10 +1,13 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { QUARTERLY_TUITION_COST } from '@/game-data/types';
 import { getTimeAdvanceBlockReason, useGameStore } from '@/state/game-state';
 import { ChildrenComponent } from '../children';
+import { Button } from '../button';
 
 export default function Hud() {
+    const router = useRouter();
     const year = useGameStore((state) => state.year);
     const quarter = useGameStore((state) => state.quarter);
     const month = useGameStore((state) => state.month);
@@ -16,6 +19,9 @@ export default function Hud() {
     return (
         <div>
             <article className="font-semibold">🌾 Entrefarm Game Header</article>
+            <article className="text-sm text-sstone-700">
+                <Button label="Back to Main Menu" onClick={() => router.push('/')} />
+            </article>
             <article className="text-md flex gap-4">
                 <span>Year: {year}</span>
                 <span>Quarter: {quarter}</span>
