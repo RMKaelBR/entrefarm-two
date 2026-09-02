@@ -30,15 +30,26 @@ import {
 const createInitialLands = () =>
     LAND_ORIGINS.map((origin) => createLand(origin));
 
-const initialState = {
-  year: 1,
-  quarter: 1,
-  month: 1,
-  wallet: { gold: 0, silver: 0 },
-  bank: { gold: 0, silver: 0 },
-  lands: createInitialLands(),
-  children: [createChild(), createChild()],
-} as const;
+const initialState: Pick<
+    GameState,
+    | 'year'
+    | 'quarter'
+    | 'month'
+    | 'wallet'
+    | 'bank'
+    | 'lands'
+    | 'children'
+    | 'hasActiveGame'
+> = {
+    year: 1,
+    quarter: 1,
+    month: 1,
+    wallet: { gold: 20, silver: 0 },
+    bank: { gold: 0, silver: 0 },
+    lands: [],
+    children: [],
+    hasActiveGame: false,
+};
 
 export const getTimeAdvanceBlockReason = (
     state: Pick<GameState, 'children'>
@@ -52,17 +63,16 @@ export const getTimeAdvanceBlockReason = (
 export const useGameStore = create<GameState>((set, get) => ({
     ...initialState,
 
-    // TIME (state)
-    year: 1,
-    quarter: 1,
-    month: 1,
-
-    // MONEY
-    wallet: { gold: 0, silver: 0 },
-    bank: { gold: 0, silver: 0 },
-
-    // FAMILY
-    children: [createChild(), createChild()],
+    // GAME LIFECYCLE
+    startNewGame: () =>
+        set({
+            ...initialState,
+            wallet: { ...initialState.wallet },
+            bank: { ...initialState.bank },
+            lands: createInitialLands(),
+            children: [createChild(), createChild()],
+            hasActiveGame: true,
+        }),
 
     // TIME (actions)
     advanceWorldTime: () => set((state) => {
@@ -220,10 +230,5 @@ export const useGameStore = create<GameState>((set, get) => ({
     },
 
     // RESET ALL
-    resetAll: () =>
-        set(() => ({
-            ...initialState,
-            lands: createInitialLands(),
-            children: [createChild(), createChild()], // reset with new children
-        })),
+    resetAll: () => get().startNewGame(),
 }));

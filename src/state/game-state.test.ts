@@ -19,6 +19,73 @@ const makeAdultChild = (
   ...overrides,
 });
 
+describe("game lifecycle", () => {
+  beforeEach(() => {
+    useGameStore.setState({
+      year: 1,
+      quarter: 1,
+      month: 1,
+      wallet: { gold: 20, silver: 0 },
+      bank: { gold: 0, silver: 0 },
+      lands: [],
+      children: [],
+      hasActiveGame: false,
+    });
+  });
+
+  it("boots with deterministic data and no active game", () => {
+    expect(useGameStore.getState()).toMatchObject({
+      year: 1,
+      quarter: 1,
+      month: 1,
+      wallet: { gold: 20, silver: 0 },
+      bank: { gold: 0, silver: 0 },
+      lands: [],
+      children: [],
+      hasActiveGame: false,
+    });
+  });
+
+  it("starts a complete active game with 20 gold", () => {
+    useGameStore.getState().startNewGame();
+    const state = useGameStore.getState();
+
+    expect(state).toMatchObject({
+      year: 1,
+      quarter: 1,
+      month: 1,
+      wallet: { gold: 20, silver: 0 },
+      bank: { gold: 0, silver: 0 },
+      hasActiveGame: true,
+    });
+    expect(state.lands.map((land) => land.origin)).toEqual(LAND_ORIGINS);
+    expect(state.children).toHaveLength(2);
+    expect(new Set(state.lands.map((land) => land.id)).size).toBe(LAND_ORIGINS.length);
+    expect(new Set(state.children.map((child) => child.id)).size).toBe(2);
+  });
+
+  it("replaces randomized entities when starting another game", () => {
+    useGameStore.getState().startNewGame();
+    const firstLandIds = useGameStore.getState().lands.map((land) => land.id);
+    const firstChildIds = useGameStore.getState().children.map((child) => child.id);
+
+    useGameStore.setState({
+      year: 7,
+      wallet: { gold: 3, silver: 4 },
+    });
+    useGameStore.getState().startNewGame();
+    const state = useGameStore.getState();
+
+    expect(state).toMatchObject({
+      year: 1,
+      wallet: { gold: 20, silver: 0 },
+      hasActiveGame: true,
+    });
+    expect(state.lands.map((land) => land.id)).not.toEqual(firstLandIds);
+    expect(state.children.map((child) => child.id)).not.toEqual(firstChildIds);
+  });
+});
+
 describe("adult-child education store actions", () => {
   beforeEach(() => {
     useGameStore.setState({
@@ -29,6 +96,7 @@ describe("adult-child education store actions", () => {
       bank: { gold: 0, silver: 0 },
       lands: LAND_ORIGINS.map(createLand),
       children: [makeAdultChild()],
+      hasActiveGame: true,
     });
   });
 
@@ -138,25 +206,34 @@ describe("owned land store actions", () => {
     useGameStore.setState({
       wallet: { gold: 0, silver: 0 },
       lands: [createLand("forestedPlains")],
+      hasActiveGame: true,
     });
   });
 
-  it("resets with one fresh preset parcel for every land origin", () => {
+  it("resets to an active new game with fresh lands and children", () => {
     const beforeReset = LAND_ORIGINS.map(createLand);
+    const beforeChildren = [makeAdultChild({ id: "before-1" })];
 
     useGameStore.setState({
       wallet: { gold: 20, silver: 0 },
       lands: beforeReset,
+      children: beforeChildren,
+      hasActiveGame: true,
     });
 
     useGameStore.getState().resetAll();
 
     const resetState = useGameStore.getState();
-    expect(resetState.wallet).toEqual({ gold: 0, silver: 0 });
+    expect(resetState.wallet).toEqual({ gold: 20, silver: 0 });
+    expect(resetState.hasActiveGame).toBe(true);
     expect(resetState.lands.map((land) => land.origin)).toEqual(LAND_ORIGINS);
     expect(new Set(resetState.lands.map((land) => land.id)).size).toBe(LAND_ORIGINS.length);
     expect(resetState.lands.map((land) => land.id)).not.toEqual(
       beforeReset.map((land) => land.id),
+    );
+    expect(resetState.children).toHaveLength(2);
+    expect(resetState.children.map((child) => child.id)).not.toEqual(
+      beforeChildren.map((child) => child.id),
     );
 
     resetState.lands.forEach((land, index) => {
