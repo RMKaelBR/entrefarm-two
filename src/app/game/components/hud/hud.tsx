@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { QUARTERLY_TUITION_COST } from '@/game-data/types';
+import { childNeedsQuarterlyTuitionDecision } from '@/game-data/family/education-functions';
 import { getTimeAdvanceBlockReason, useGameStore } from '@/state/game-state';
 import { ChildrenComponent } from '../children';
 import { Button } from '../button';
@@ -14,7 +15,10 @@ export default function Hud() {
 
     const wallet = useGameStore((state) => state.wallet);
     const bank = useGameStore((state) => state.bank);
-    const tuitionBlockReason = useGameStore((state) => getTimeAdvanceBlockReason(state));
+    const timeAdvanceBlockReason = useGameStore((state) => getTimeAdvanceBlockReason(state));
+    const hasTuitionDecision = useGameStore((state) =>
+        state.children.some(childNeedsQuarterlyTuitionDecision)
+    );
 
     return (
         <div>
@@ -30,13 +34,15 @@ export default function Hud() {
                 <div>Wallet: {wallet.gold}<span className="text-sm">🟡</span> {wallet.silver}<span className="text-sm">🔘</span></div>
                 <div>Bank: {bank.gold}<span className="text-sm">🟡</span> {bank.silver}<span className="text-sm">🔘</span></div>
             </article>
-            {tuitionBlockReason && (
+            {timeAdvanceBlockReason && (
                 <>
-                    <article className="text-sm text-stone-700">
-                        Tuition is {QUARTERLY_TUITION_COST.gold} gold per eligible child,
-                        or you may opt out for this quarter.
-                    </article>
-                    <article className="text-sm text-red-700">{tuitionBlockReason}</article>
+                    {hasTuitionDecision && (
+                        <article className="text-sm text-stone-700">
+                            Tuition is {QUARTERLY_TUITION_COST.gold} gold per eligible child,
+                            or you may opt out for this quarter.
+                        </article>
+                    )}
+                    <article className="text-sm text-red-700">{timeAdvanceBlockReason}</article>
                 </>
             )}
             <article>

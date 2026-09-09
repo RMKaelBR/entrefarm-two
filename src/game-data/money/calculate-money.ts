@@ -25,3 +25,22 @@ export const addCurrency = (a: Currency, b: Currency): Currency =>
 
 export const subCurrency = (a: Currency, b: Currency): Currency =>
   normalize({ gold: a.gold - b.gold, silver: a.silver - b.silver });
+
+export const currencyToSilver = ({ gold, silver }: Currency): number =>
+  gold * 10 + silver;
+
+export const silverToCurrency = (silver: number): Currency => ({
+  gold: Math.floor(silver / 10),
+  silver: silver % 10,
+});
+
+export const canAffordCurrency = (funds: Currency, cost: Currency): boolean =>
+  currencyToSilver(funds) >= currencyToSilver(cost);
+
+export const multiplyCurrencyRatio = (
+  amount: Currency,
+  numerator: number,
+  denominator: number,
+): Currency => silverToCurrency(
+  Math.ceil((currencyToSilver(amount) * numerator) / denominator),
+);

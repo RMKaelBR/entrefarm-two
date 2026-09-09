@@ -11,21 +11,23 @@ import {
     getConstructionCostMultiplier,
     getLandElevation,
 } from "@/game-data/land/land-functions";
-import { subCurrency } from "@/game-data/money/calculate-money";
-import type { Currency } from "@/game-data/types";
+import {
+    calculateLoanPrincipal,
+    findLoanForLand,
+} from "@/game-data/loan/loan-functions";
+import { canAffordCurrency } from "@/game-data/money/calculate-money";
 import { useGameStore } from "@/state/game-state";
 import { Button } from "../button";
 
-const canAfford = (wallet: Currency, cost: Currency) => {
-    const remaining = subCurrency(wallet, cost);
-    return remaining.gold >= 0 && remaining.silver >= 0;
-};
-
 export const LandComponent = () => {
     const lands = useGameStore((state) => state.lands);
+    const loans = useGameStore((state) => state.loans);
     const wallet = useGameStore((state) => state.wallet);
     const clearOwnedLand = useGameStore((state) => state.clearOwnedLand);
     const irrigateOwnedLand = useGameStore((state) => state.irrigateOwnedLand);
+    const takeLandLoan = useGameStore((state) => state.takeLandLoan);
+    const repayLoan = useGameStore((state) => state.repayLoan);
+    const carryOverLoan = useGameStore((state) => state.carryOverLoan);
 
     return (
         <section className="space-y-3">
@@ -34,8 +36,13 @@ export const LandComponent = () => {
                 {lands.map((land) => {
                     const clearable = canClearLand(land);
                     const irrigatable = canIrrigateLand(land);
-                    const clearAffordable = canAfford(wallet, CLEARING_COST_GOLD);
-                    const irrigationAffordable = canAfford(wallet, IRRIGATION_COST_GOLD);
+                    const clearAffordable = canAffordCurrency(wallet, CLEARING_COST_GOLD);
+                    const irrigationAffordable = canAffordCurrency(wallet, IRRIGATION_COST_GOLD);
+                    const loan = findLoanForLand(loans, land.id);
+                    const proceeds = calculateLoanPrincipal(land.currentValue);
+                    const canRepay = loan
+                        ? canAffordCurrency(wallet, loan.outstandingBalance)
+                        : false;
 
                     return (
                         <article key={land.id} className="space-y-3 rounded border bg-white p-4">
@@ -58,6 +65,36 @@ export const LandComponent = () => {
                                 <dt>Construction cost</dt>
                                 <dd>{getConstructionCostMultiplier(land)}x</dd>
                             </dl>
+
+                            {!loan && (
+                                <Button
+                                    label={`Borrow ${proceeds.gold} Gold ${proceeds.silver} Silver`}
+                                    onClick={() => takeLandLoan(land.id)}
+                                />
+                            )}
+                            {loan?.status === "active" && (
+                                <p className="text-sm text-amber-700">
+                                    Pledged as collateral — outstanding: {loan.outstandingBalance.gold} gold {loan.outstandingBalance.silver} silver.
+                                </p>
+                            )}
+                            {loan?.status === "pending" && (
+                                <div className="space-y-2">
+                                    <p className="text-sm text-red-700">
+                                        Amount due: {loan.outstandingBalance.gold} gold {loan.outstandingBalance.silver} silver.
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            disabled={!canRepay}
+                                            label={canRepay ? "Repay Loan" : "Cannot Afford Repayment"}
+                                            onClick={() => repayLoan(loan.id)}
+                                        />
+                                        <Button
+                                            label="Carry Over"
+                                            onClick={() => carryOverLoan(loan.id)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {clearable && (
                                 <div className="space-y-1">

@@ -17,17 +17,17 @@ const baseStyles =
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500",
+    "bg-emerald-600 text-white enabled:hover:bg-emerald-700 focus:ring-emerald-500",
   secondary:
-    "bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-400",
+    "bg-gray-200 text-gray-900 enabled:hover:bg-gray-300 focus:ring-gray-400",
   warning:
-    "bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-yellow-400",
+    "bg-yellow-500 text-white enabled:hover:bg-yellow-600 focus:ring-yellow-400",
   danger:
-    "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+    "bg-red-600 text-white enabled:hover:bg-red-700 focus:ring-red-500",
 };
 
 const disabledStyles =
-  "opacity-50 cursor-not-allowed hover:bg-inherit";
+  "opacity-50 cursor-not-allowed";
 
 export const Button: React.FC<ButtonProps> = ({
   label,

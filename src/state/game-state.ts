@@ -11,8 +11,8 @@ import {
     prepareChildForHousehold,
     updateChildById,
 } from '@/game-data/family/family-functions';
-import { addCurrency, subCurrency } from '@/game-data/money/calculate-money';
-import { advanceWorldTime, advanceYear } from '@/game-data/time/advance-time';
+import { addCurrency, canAffordCurrency, subCurrency } from '@/game-data/money/calculate-money';
+import { advanceWorldTime } from '@/game-data/time/advance-time';
 import { Child, GameState, QUARTERLY_TUITION_COST } from '@/game-data/types';
 import { LAND_ORIGINS } from '@/game-data/land/land-types';
 import {
@@ -26,6 +26,12 @@ import {
     irrigateLand,
     createLand,
 } from '@/game-data/land/land-functions';
+import {
+    accrueLoanForYear,
+    canUseLandAsCollateral,
+    carryOverLoan as transitionLoanCarryOver,
+    createLoan,
+} from '@/game-data/loan/loan-functions';
 
 const createInitialLands = () =>
     LAND_ORIGINS.map((origin) => createLand(origin));
@@ -38,6 +44,7 @@ const initialState: Pick<
     | 'wallet'
     | 'bank'
     | 'lands'
+    | 'loans'
     | 'children'
     | 'hasActiveGame'
 > = {
@@ -47,17 +54,22 @@ const initialState: Pick<
     wallet: { gold: 20, silver: 0 },
     bank: { gold: 0, silver: 0 },
     lands: [],
+    loans: [],
     children: [],
     hasActiveGame: false,
 };
 
 export const getTimeAdvanceBlockReason = (
-    state: Pick<GameState, 'children'>
+    state: Pick<GameState, 'children' | 'loans'>
 ) => {
     const unresolved = state.children.some(childNeedsQuarterlyTuitionDecision);
-    return unresolved
-        ? 'Pay tuition or opt out for each eligible adult child before advancing time.'
-        : null;
+    if (unresolved) {
+        return 'Pay tuition or opt out for each eligible adult child before advancing time.';
+    }
+    if (state.loans.some((loan) => loan.status === 'pending')) {
+        return 'Repay or carry over every loan before advancing to the next year.';
+    }
+    return null;
 };
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -70,6 +82,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             wallet: { ...initialState.wallet },
             bank: { ...initialState.bank },
             lands: createInitialLands(),
+            loans: [],
             children: [createChild(), createChild()],
             hasActiveGame: true,
         }),
@@ -79,17 +92,17 @@ export const useGameStore = create<GameState>((set, get) => ({
         const blockReason = getTimeAdvanceBlockReason(state);
         if (blockReason) return state;
 
+        if (state.month === 12) {
+            const loans = state.loans.map((loan) => accrueLoanForYear(loan, state.year));
+            const createdDecision = loans.some((loan, index) => loan !== state.loans[index]);
+            if (createdDecision) return { ...state, loans };
+        }
+
         return {
             ...state,
             ...advanceWorldTime(state)
         };
     }),
-
-    nextYear: () =>
-        set((state) => ({
-            ...state,
-            ...advanceYear(state),
-        })),
 
     // MONEY (actions)
     earn: (amount) => set((state) => ({
@@ -223,6 +236,58 @@ export const useGameStore = create<GameState>((set, get) => ({
                 wallet: nextWallet,
                 lands: state.lands.map((land) =>
                     land.id === landId ? irrigateLand(land) : land
+                ),
+            };
+        });
+        return committed;
+    },
+
+    // LOAN (actions)
+    takeLandLoan: (landId) => {
+        let committed = false;
+        set((state) => {
+            const land = state.lands.find((item) => item.id === landId);
+            if (!land || !canUseLandAsCollateral(state.loans, landId)) return state;
+
+            const loan = createLoan(land, state.year);
+            committed = true;
+            return {
+                ...state,
+                wallet: addCurrency(state.wallet, loan.outstandingBalance),
+                loans: [...state.loans, loan],
+            };
+        });
+        return committed;
+    },
+
+    repayLoan: (loanId) => {
+        let committed = false;
+        set((state) => {
+            const loan = state.loans.find((item) => item.id === loanId);
+            if (!loan || loan.status !== 'pending') return state;
+            if (!canAffordCurrency(state.wallet, loan.outstandingBalance)) return state;
+
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, loan.outstandingBalance),
+                loans: state.loans.filter((item) => item.id !== loanId),
+            };
+        });
+        return committed;
+    },
+
+    carryOverLoan: (loanId) => {
+        let committed = false;
+        set((state) => {
+            const loan = state.loans.find((item) => item.id === loanId);
+            if (!loan || loan.status !== 'pending') return state;
+
+            committed = true;
+            return {
+                ...state,
+                loans: state.loans.map((item) =>
+                    item.id === loanId ? transitionLoanCarryOver(item) : item
                 ),
             };
         });

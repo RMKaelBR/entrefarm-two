@@ -25,12 +25,6 @@ export function advanceTime(state: GameState): TimePatch {
   };
 }
 
-export function advanceYear(state: GameState): Partial<GameState> {
-  return {
-    year: state.year + 1,
-  };
-}
-
 export function advanceQuarter(state: GameState): Partial<GameState> {
   return {
     year: state.quarter === 4 ? state.year + 1 : state.year,
