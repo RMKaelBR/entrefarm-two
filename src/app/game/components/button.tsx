@@ -27,7 +27,7 @@ const variantStyles: Record<ButtonVariant, string> = {
 };
 
 const disabledStyles =
-  "opacity-50 cursor-not-allowed hover:bg-inherit";
+  "opacity-50 cursor-not-allowed  ";
 
 export const Button: React.FC<ButtonProps> = ({
   label,

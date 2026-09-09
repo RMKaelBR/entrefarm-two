@@ -28,6 +28,7 @@ describe("game lifecycle", () => {
       wallet: { gold: 20, silver: 0 },
       bank: { gold: 0, silver: 0 },
       lands: [],
+      loans: [],
       children: [],
       hasActiveGame: false,
     });
@@ -41,6 +42,7 @@ describe("game lifecycle", () => {
       wallet: { gold: 20, silver: 0 },
       bank: { gold: 0, silver: 0 },
       lands: [],
+      loans: [],
       children: [],
       hasActiveGame: false,
     });
@@ -95,6 +97,7 @@ describe("adult-child education store actions", () => {
       wallet: { gold: 8, silver: 0 },
       bank: { gold: 0, silver: 0 },
       lands: LAND_ORIGINS.map(createLand),
+      loans: [],
       children: [makeAdultChild()],
       hasActiveGame: true,
     });
@@ -206,6 +209,7 @@ describe("owned land store actions", () => {
     useGameStore.setState({
       wallet: { gold: 0, silver: 0 },
       lands: [createLand("forestedPlains")],
+      loans: [],
       hasActiveGame: true,
     });
   });
@@ -345,4 +349,135 @@ describe("owned land store actions", () => {
       expect(useGameStore.getState().irrigateOwnedLand(irrigationTarget.id)).toBe(canIrrigate);
     },
   );
+});
+
+describe("land loan store actions", () => {
+  beforeEach(() => {
+    useGameStore.setState({
+      year: 1,
+      quarter: 4,
+      month: 12,
+      wallet: { gold: 0, silver: 0 },
+      bank: { gold: 0, silver: 0 },
+      lands: [createLand("plains"), createLand("riverlands")],
+      loans: [],
+      children: [],
+      hasActiveGame: true,
+    });
+  });
+
+  it("originates exactly one loan per parcel and credits the wallet atomically", () => {
+    const landId = useGameStore.getState().lands[0].id;
+
+    expect(useGameStore.getState().takeLandLoan(landId)).toBe(true);
+    const borrowed = useGameStore.getState();
+    expect(borrowed.wallet).toEqual({ gold: 20, silver: 0 });
+    expect(borrowed.loans).toHaveLength(1);
+    expect(borrowed.loans[0]).toMatchObject({
+      collateralLandId: landId,
+      outstandingBalance: { gold: 20, silver: 0 },
+      originatedYear: 1,
+      status: "active",
+    });
+
+    const wallet = borrowed.wallet;
+    const loans = borrowed.loans;
+    expect(borrowed.takeLandLoan(landId)).toBe(false);
+    expect(useGameStore.getState().wallet).toBe(wallet);
+    expect(useGameStore.getState().loans).toBe(loans);
+  });
+
+  it("accrues once on the first December attempt without ticking time or children", () => {
+    const landId = useGameStore.getState().lands[0].id;
+    useGameStore.getState().takeLandLoan(landId);
+    const children = useGameStore.getState().children;
+
+    useGameStore.getState().advanceWorldTime();
+    const pending = useGameStore.getState();
+    expect(pending).toMatchObject({ year: 1, quarter: 4, month: 12 });
+    expect(pending.children).toBe(children);
+    expect(pending.loans[0]).toMatchObject({
+      outstandingBalance: { gold: 24, silver: 0 },
+      lastAccruedYear: 1,
+      status: "pending",
+    });
+
+    const loan = pending.loans[0];
+    useGameStore.getState().advanceWorldTime();
+    expect(useGameStore.getState().loans[0]).toBe(loan);
+    expect(useGameStore.getState().month).toBe(12);
+  });
+
+  it("rejects unaffordable repayment and removes an affordable repaid loan", () => {
+    const landId = useGameStore.getState().lands[0].id;
+    useGameStore.getState().takeLandLoan(landId);
+    useGameStore.getState().advanceWorldTime();
+    useGameStore.setState({ wallet: { gold: 23, silver: 9 } });
+    const before = useGameStore.getState();
+
+    expect(before.repayLoan(before.loans[0].id)).toBe(false);
+    expect(useGameStore.getState().wallet).toBe(before.wallet);
+    expect(useGameStore.getState().loans).toBe(before.loans);
+
+    useGameStore.setState({ wallet: { gold: 24, silver: 0 } });
+    expect(useGameStore.getState().repayLoan(before.loans[0].id)).toBe(true);
+    expect(useGameStore.getState()).toMatchObject({ wallet: { gold: 0, silver: 0 }, loans: [] });
+  });
+
+  it("carries over, advances to January, and compounds again next year", () => {
+    const landId = useGameStore.getState().lands[0].id;
+    useGameStore.getState().takeLandLoan(landId);
+    useGameStore.getState().advanceWorldTime();
+    const pending = useGameStore.getState().loans[0];
+
+    expect(useGameStore.getState().carryOverLoan(pending.id)).toBe(true);
+    const carried = useGameStore.getState().loans[0];
+    expect(carried).toMatchObject({
+      outstandingBalance: { gold: 24, silver: 0 },
+      lastAccruedYear: 1,
+      status: "active",
+    });
+
+    useGameStore.getState().advanceWorldTime();
+    expect(useGameStore.getState()).toMatchObject({ year: 2, quarter: 1, month: 1 });
+    useGameStore.setState({ quarter: 4, month: 12 });
+    useGameStore.getState().advanceWorldTime();
+    expect(useGameStore.getState().loans[0]).toMatchObject({
+      outstandingBalance: { gold: 28, silver: 8 },
+      lastAccruedYear: 2,
+      status: "pending",
+    });
+  });
+
+  it("keeps time blocked until every loan is resolved", () => {
+    const [first, second] = useGameStore.getState().lands;
+    useGameStore.getState().takeLandLoan(first.id);
+    useGameStore.getState().takeLandLoan(second.id);
+    useGameStore.getState().advanceWorldTime();
+    const [firstLoan, secondLoan] = useGameStore.getState().loans;
+
+    useGameStore.getState().carryOverLoan(firstLoan.id);
+    useGameStore.getState().advanceWorldTime();
+    expect(useGameStore.getState().month).toBe(12);
+    useGameStore.getState().carryOverLoan(secondLoan.id);
+    useGameStore.getState().advanceWorldTime();
+    expect(useGameStore.getState()).toMatchObject({ year: 2, month: 1 });
+  });
+
+  it("keeps tuition ahead of loan accrual", () => {
+    const landId = useGameStore.getState().lands[0].id;
+    useGameStore.getState().takeLandLoan(landId);
+    useGameStore.setState({ children: [makeAdultChild()] });
+    const loan = useGameStore.getState().loans[0];
+
+    useGameStore.getState().advanceWorldTime();
+    expect(useGameStore.getState().loans[0]).toBe(loan);
+    expect(useGameStore.getState().loans[0].status).toBe("active");
+  });
+
+  it("reset starts a new game without loans", () => {
+    useGameStore.getState().takeLandLoan(useGameStore.getState().lands[0].id);
+    useGameStore.getState().resetAll();
+    expect(useGameStore.getState().loans).toEqual([]);
+  });
 });

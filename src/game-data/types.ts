@@ -1,4 +1,5 @@
 import type { Land } from "./land/land-types";
+import type { Loan } from "./loan/loan-types";
 
 export type GameState = {
     year: number;
@@ -7,11 +8,14 @@ export type GameState = {
     wallet: Currency;
     bank: Currency;
     lands: Land[];
+    loans: Loan[];
     children: Child[];
     hasActiveGame: boolean;
     startNewGame: () => void;
     advanceWorldTime: () => void;
-    nextYear: () => void;
+    takeLandLoan: (landId: Land["id"]) => boolean;
+    repayLoan: (loanId: Loan["id"]) => boolean;
+    carryOverLoan: (loanId: Loan["id"]) => boolean;
     earn: (amount: Currency) => void;
     spend: (amount: Currency) => boolean;
     deposit: (amount: Currency) => void;

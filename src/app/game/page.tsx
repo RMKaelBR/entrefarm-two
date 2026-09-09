@@ -7,7 +7,6 @@ import { DiceRoller } from "./components/dice-box/dice-box";
 import { LandComponent } from "./components/land/land";
 
 const GamePage = () => {
-    const nextYear = useGameStore((state) => state.nextYear);
     const advanceWorldTime = useGameStore((state) => state.advanceWorldTime);
     const resetAll = useGameStore((state) => state.resetAll);
     const timeAdvanceBlockReason = useGameStore((state) => getTimeAdvanceBlockReason(state));
@@ -26,9 +25,6 @@ const GamePage = () => {
             <div className="space-y-3 flex-col">
                 <div>Game Page</div>
                 <div className="flex">
-                    <button className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5" onClick={nextYear}>
-                    Next Year
-                    </button>
                     <button
                         className="rounded-xl border px-4 py-2 m-2 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={Boolean(timeAdvanceBlockReason)}
