@@ -11,6 +11,20 @@ import {
     prepareChildForHousehold,
     updateChildById,
 } from '@/game-data/family/family-functions';
+import { RICE_CARD } from '@/game-data/crop/crop-data';
+import {
+    addRiceMaintenance,
+    createRiceCrop,
+    createRiceProduce,
+    getRiceStage,
+    getRiceYield,
+    hasWholeGold,
+    isEligibleRiceRiverland,
+    isRiceMature,
+    isRiceProductionPaid,
+    markRiceDevelopmentPaid,
+    markRiceProductionPaid,
+} from '@/game-data/crop/crop-functions';
 import { addCurrency, canAffordCurrency, subCurrency } from '@/game-data/money/calculate-money';
 import { advanceWorldTime } from '@/game-data/time/advance-time';
 import { Child, GameState, QUARTERLY_TUITION_COST } from '@/game-data/types';
@@ -46,6 +60,9 @@ const initialState: Pick<
     | 'lands'
     | 'loans'
     | 'children'
+    | 'crops'
+    | 'cropPlantingHistory'
+    | 'produceInventory'
     | 'hasActiveGame'
 > = {
     year: 1,
@@ -56,6 +73,9 @@ const initialState: Pick<
     lands: [],
     loans: [],
     children: [],
+    crops: [],
+    cropPlantingHistory: [],
+    produceInventory: [],
     hasActiveGame: false,
 };
 
@@ -84,6 +104,9 @@ export const useGameStore = create<GameState>((set, get) => ({
             lands: createInitialLands(),
             loans: [],
             children: [createChild(), createChild()],
+            crops: [],
+            cropPlantingHistory: [],
+            produceInventory: [],
             hasActiveGame: true,
         }),
 
@@ -239,6 +262,138 @@ export const useGameStore = create<GameState>((set, get) => ({
                 ),
             };
         });
+        return committed;
+    },
+
+    // CROP (actions)
+    startRicePlanting: (landId) => {
+        let committed = false;
+
+        set((state) => {
+            const land = state.lands.find((item) => item.id === landId);
+            if (!land || !isEligibleRiceRiverland(land)) return state;
+            if (state.crops.some((crop) => crop.landId === landId)) return state;
+            if (!hasWholeGold(state.wallet, RICE_CARD.seedCost)) return state;
+
+            const crop = createRiceCrop(landId, state.year, state.month);
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, RICE_CARD.seedCost),
+                crops: [...state.crops, crop],
+                cropPlantingHistory: [
+                    ...state.cropPlantingHistory,
+                    {
+                        cropId: crop.id,
+                        kind: crop.kind,
+                        landId,
+                        year: state.year,
+                    },
+                ],
+            };
+        });
+
+        return committed;
+    },
+
+    fundRiceDevelopment: (cropId, task) => {
+        let committed = false;
+
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+            const cost = RICE_CARD.developmentCosts[task];
+
+            if (!crop || crop.development[task]) return state;
+            if (!hasWholeGold(state.wallet, cost)) return state;
+
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, cost),
+                crops: state.crops.map((item) =>
+                    item.id === cropId
+                        ? markRiceDevelopmentPaid(item, task)
+                        : item
+                ),
+            };
+        });
+
+        return committed;
+    },
+
+    fundRiceMaintenance: (cropId) => {
+        let committed = false;
+
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+
+            if (!crop || getRiceStage(crop) !== "maintenance") return state;
+            if (!crop || crop.maintenancePaid >= RICE_CARD.maintenanceSpaces) {
+                return state;
+            }
+            if (!hasWholeGold(state.wallet, RICE_CARD.maintenanceSpaceCost)) {
+                return state;
+            }
+
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, RICE_CARD.maintenanceSpaceCost),
+                crops: state.crops.map((item) =>
+                    item.id === cropId ? addRiceMaintenance(item) : item
+                ),
+            };
+        });
+
+        return committed;
+    },
+
+    fundRiceProduction: (cropId, task) => {
+        let committed = false;
+
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+            const cost = RICE_CARD.productionCosts[task];
+
+            if (!crop || !isRiceMature(crop) || crop.production[task]) {
+                return state;
+            }
+            if (!hasWholeGold(state.wallet, cost)) return state;
+
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, cost),
+                crops: state.crops.map((item) =>
+                    item.id === cropId
+                        ? markRiceProductionPaid(item, task)
+                        : item
+                ),
+            };
+        });
+
+        return committed;
+    },
+
+    harvestRice: (cropId) => {
+        let committed = false;
+
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+
+            if (!crop || !isRiceMature(crop) || !isRiceProductionPaid(crop)) {
+                return state;
+            }
+
+            const produce = createRiceProduce(getRiceYield(crop));
+            committed = true;
+            return {
+                ...state,
+                crops: state.crops.filter((item) => item.id !== cropId),
+                produceInventory: [...state.produceInventory, ...produce],
+            };
+        });
+
         return committed;
     },
 

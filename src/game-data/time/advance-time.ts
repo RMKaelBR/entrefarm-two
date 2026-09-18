@@ -1,3 +1,4 @@
+import { tickRiceMaturity } from "../crop/crop-functions";
 import { tickChildrenQuarter } from "../family/family-functions";
 import { GameState, TokenTrack } from "../types";
 
@@ -10,6 +11,7 @@ export function advanceWorldTime(state: GameState): Partial<GameState> {
   return {
     ...nextTime,
     children: isQuarterEnd ? tickChildrenQuarter(state.children) : state.children,
+    crops: tickRiceMaturity(state.crops),
   };
 }
 

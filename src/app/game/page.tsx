@@ -3,6 +3,7 @@
 import { getTimeAdvanceBlockReason, useGameStore } from "@/state/game-state";
 import { useState } from "react";
 import { Button } from "./components/button";
+import { RiceCropComponent } from "./components/crops/rice-crop";
 import { DiceRoller } from "./components/dice-box/dice-box";
 import { LandComponent } from "./components/land/land";
 
@@ -110,6 +111,7 @@ const GamePage = () => {
             </div>
             <section className="m-4 space-y-4">
                 <LandComponent />
+                <RiceCropComponent />
                 <DiceRoller />
             </section>
         </section>

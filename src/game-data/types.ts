@@ -1,3 +1,10 @@
+import type {
+  CropPlantingRecord,
+  ProduceToken,
+  RiceCrop,
+  RiceDevelopmentTask,
+  RiceProductionTask,
+} from "./crop/crop-types";
 import type { Land } from "./land/land-types";
 import type { Loan } from "./loan/loan-types";
 
@@ -10,6 +17,9 @@ export type GameState = {
     lands: Land[];
     loans: Loan[];
     children: Child[];
+    crops: RiceCrop[];
+    cropPlantingHistory: CropPlantingRecord[];
+    produceInventory: ProduceToken[];
     hasActiveGame: boolean;
     startNewGame: () => void;
     advanceWorldTime: () => void;
@@ -29,6 +39,17 @@ export type GameState = {
     setChildLaborJob: (childId: Child["id"], laborJob: Child["laborJob"]) => void;
     clearOwnedLand: (landId: Land["id"]) => boolean;
     irrigateOwnedLand: (landId: Land["id"]) => boolean;
+    startRicePlanting: (landId: Land["id"]) => boolean;
+    fundRiceDevelopment: (
+      cropId: RiceCrop["id"],
+      task: RiceDevelopmentTask,
+    ) => boolean;
+    fundRiceMaintenance: (cropId: RiceCrop["id"]) => boolean;
+    fundRiceProduction: (
+      cropId: RiceCrop["id"],
+      task: RiceProductionTask,
+    ) => boolean;
+    harvestRice: (cropId: RiceCrop["id"]) => boolean;
     resetAll: () => void;
 };
 
