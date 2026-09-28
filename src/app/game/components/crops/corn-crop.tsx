@@ -1,23 +1,24 @@
 "use client";
 
-import { RICE_CARD } from "@/game-data/crop/crop-data";
+import { CORN_CARD } from "@/game-data/crop/crop-data";
 import {
-    getRiceStage,
-    isEligibleRiceRiverland,
+    getAssignedCornLand,
+    getCashCropStage,
+    isEligibleCornLand,
     hasWholeGold,
-    isRiceDeveloped,
-    isRiceMature,
-    isRiceProductionPaid,
+    isCashCropDeveloped,
+    isCashCropMature,
+    isCornProductionPaid,
 } from "@/game-data/crop/crop-functions";
 import type {
-    RiceDevelopmentTask,
-    RiceProductionTask,
+    CornDevelopmentTask,
+    CornProductionTask,
 } from "@/game-data/crop/crop-types";
 import { useGameStore } from "@/state/game-state";
 import { Button } from "../button";
 
 const developmentTasks: Array<{
-    task: RiceDevelopmentTask;
+    task: CornDevelopmentTask;
     label: string;
 }> = [
     { task: "plowing", label: "Plowing" },
@@ -25,10 +26,11 @@ const developmentTasks: Array<{
 ];
 
 const productionTasks: Array<{
-    task: RiceProductionTask;
+    task: CornProductionTask;
     label: string;
 }> = [
-    { task: "harvesting", label: "Harvesting" },
+    { task: "picking", label: "Picking" },
+    { task: "shelling", label: "Shelling" },
     { task: "hauling", label: "Hauling" },
     { task: "drying", label: "Drying" },
 ];
@@ -40,46 +42,57 @@ const stageLabels = {
     harvest: "Harvest-ready — month 3 / 3",
 };
 
-export function RiceCropComponent() {
+export function CornCropComponent() {
     const wallet = useGameStore((state) => state.wallet);
     const lands = useGameStore((state) => state.lands);
     const crops = useGameStore((state) => state.crops);
     const inventory = useGameStore((state) => state.produceInventory);
-    const startRicePlanting = useGameStore((state) => state.startRicePlanting);
-    const fundRiceDevelopment = useGameStore((state) => state.fundRiceDevelopment);
-    const fundRiceMaintenance = useGameStore((state) => state.fundRiceMaintenance);
-    const fundRiceProduction = useGameStore((state) => state.fundRiceProduction);
-    const harvestRice = useGameStore((state) => state.harvestRice);
+    const startCornPlanting = useGameStore((state) => state.startCornPlanting);
+    const fundCornDevelopment = useGameStore((state) => state.fundCornDevelopment);
+    const fundCornMaintenance = useGameStore((state) => state.fundCornMaintenance);
+    const fundCornProduction = useGameStore((state) => state.fundCornProduction);
+    const harvestCorn = useGameStore((state) => state.harvestCorn);
 
-    const riverland = lands.find((land) => land.origin === "riverlands");
-    const occupant = crops.find((item) => item.landId === riverland?.id);
-    const crop = occupant?.kind === "rice" ? occupant : undefined;
-    const phase = crop ? getRiceStage(crop) : null;
-    const heldRice = inventory.filter((item) => item.crop === "rice").length;
-    const emptyParcelStatus = !riverland
-        ? "No owned riverland is available."
+    const plains = getAssignedCornLand(lands);
+    const occupant = crops.find((item) => item.landId === plains?.id);
+    const crop = occupant?.kind === "corn" ? occupant : undefined;
+    const phase = crop ? getCashCropStage(crop) : null;
+    const heldCorn = inventory.filter((item) => item.crop === "corn").length;
+    const emptyParcelStatus = !plains
+        ? "No owned Plains parcel is available."
         : occupant
             ? "This parcel is already occupied."
-        : !isEligibleRiceRiverland(riverland)
-            ? "Rice requires cleared, irrigated riverland."
-            : !hasWholeGold(wallet, RICE_CARD.seedCost)
+        : !isEligibleCornLand(plains)
+            ? "Clearing is required before planting corn."
+            : !hasWholeGold(wallet, CORN_CARD.seedCost)
                 ? "One whole gold is required to purchase seed."
                 : null;
 
+    const hasUnaffordableTask = crop && (
+        (phase === "preparation" && developmentTasks.some(({ task }) =>
+            !crop.development[task] && !hasWholeGold(wallet, CORN_CARD.developmentCosts[task])))
+        || (phase === "maintenance" && crop.maintenancePaid < CORN_CARD.maintenanceSpaces
+            && !hasWholeGold(wallet, CORN_CARD.maintenanceSpaceCost))
+        || (phase === "harvest" && productionTasks.some(({ task }) =>
+            !crop.production[task] && !hasWholeGold(wallet, CORN_CARD.productionCosts[task])))
+    );
+
     return (
         <section className="space-y-3 border bg-white p-4">
-            <h2 className="font-semibold">Irrigated Rice</h2>
+            <h2 className="font-semibold">Corn</h2>
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                <dt>Held rice</dt>
-                <dd>{heldRice} tokens</dd>
+                <dt>Assigned parcel</dt>
+                <dd>{plains ? `Plains (${plains.id})` : "Unavailable"}</dd>
+                <dt>Held corn</dt>
+                <dd>{heldCorn} tokens</dd>
             </dl>
 
-            {!crop && riverland && (
+            {!crop && plains && (
                 <div className="space-y-2">
                     <Button
-                        label={`Start Rice Planting (${RICE_CARD.seedCost.gold} Gold)`}
+                        label={`Start Corn Planting (${CORN_CARD.seedCost.gold} Gold)`}
                         disabled={Boolean(emptyParcelStatus)}
-                        onClick={() => startRicePlanting(riverland.id)}
+                        onClick={() => startCornPlanting(plains.id)}
                     />
                     {emptyParcelStatus && (
                         <p className="text-sm text-stone-600">{emptyParcelStatus}</p>
@@ -87,16 +100,20 @@ export function RiceCropComponent() {
                 </div>
             )}
 
-            {!riverland && (
+            {!plains && (
                 <p className="text-sm text-stone-600">{emptyParcelStatus}</p>
+            )}
+
+            {hasUnaffordableTask && (
+                <p className="text-sm text-amber-700">Not enough whole gold in your wallet for the disabled tasks.</p>
             )}
 
             {crop && (
                 <div className="space-y-3 border p-3">
-                    <h3 className="font-medium">Active Rice Crop</h3>
+                    <h3 className="font-medium">Active Corn Crop</h3>
                     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
                         <dt>Stage</dt>
-                        <dd>{stageLabels[getRiceStage(crop)]}</dd>
+                        <dd>{stageLabels[getCashCropStage(crop)]}</dd>
                         <dt>Seed</dt>
                         <dd>Paid</dd>
                         <dt>Plowing</dt>
@@ -104,7 +121,7 @@ export function RiceCropComponent() {
                         <dt>Planting</dt>
                         <dd>{crop.development.planting ? "Paid" : "Unpaid"}</dd>
                         <dt>Maintenance</dt>
-                        <dd>{crop.maintenancePaid} / {RICE_CARD.maintenanceSpaces}</dd>
+                        <dd>{crop.maintenancePaid} / {CORN_CARD.maintenanceSpaces}</dd>
                         <dt>Growth progress</dt>
                         <dd>{crop.maturity.timeTokens} / {crop.maturity.timeTokensMax}</dd>
                         {productionTasks.map(({ task, label }) => (
@@ -119,17 +136,17 @@ export function RiceCropComponent() {
                         <div className="flex flex-wrap gap-2">
                             {developmentTasks.map(({ task, label }) => {
                                 if (crop.development[task]) return null;
-                                const cost = RICE_CARD.developmentCosts[task];
+                                const cost = CORN_CARD.developmentCosts[task];
                                 return (
                                     <Button
                                         key={task}
                                         label={`Fund ${label} (${cost.gold} Gold)`}
                                         disabled={!hasWholeGold(wallet, cost)}
-                                        onClick={() => fundRiceDevelopment(crop.id, task)}
+                                        onClick={() => fundCornDevelopment(crop.id, task)}
                                     />
                                 );
                             })}
-                            {isRiceDeveloped(crop) && (
+                            {isCashCropDeveloped(crop) && (
                                 <p className="text-sm text-emerald-700">
                                     Preparation is complete. Maintenance opens next month.
                                 </p>
@@ -139,49 +156,49 @@ export function RiceCropComponent() {
 
                     {phase === "maintenance" && (
                         <div className="space-y-2">
-                            {crop.maintenancePaid < RICE_CARD.maintenanceSpaces && (
+                            {crop.maintenancePaid < CORN_CARD.maintenanceSpaces && (
                                 <Button
-                                    label={`Fund Maintenance (${RICE_CARD.maintenanceSpaceCost.gold} Gold)`}
-                                    disabled={!hasWholeGold(wallet, RICE_CARD.maintenanceSpaceCost)}
-                                    onClick={() => fundRiceMaintenance(crop.id)}
+                                    label={`Fund Maintenance (${CORN_CARD.maintenanceSpaceCost.gold} Gold)`}
+                                    disabled={!hasWholeGold(wallet, CORN_CARD.maintenanceSpaceCost)}
+                                    onClick={() => fundCornMaintenance(crop.id)}
                                 />
                             )}
                             <p className="text-sm text-stone-600">
-                                Maintenance is optional. A fully developed crop gains maturity when this month ends.
+                                Maintenance is optional. Full maintenance yields six tokens; otherwise harvest yields four.
                             </p>
                         </div>
                     )}
 
-                    {isRiceMature(crop) && (
+                    {isCashCropMature(crop) && (
                         <p className="text-sm text-stone-600">
                             Ready until harvested. This crop continues to occupy its parcel.
                         </p>
                     )}
 
-                    {isRiceMature(crop) && (
+                    {isCashCropMature(crop) && (
                         <div className="flex flex-wrap gap-2">
                             {productionTasks.map(({ task, label }) => {
                                 if (crop.production[task]) return null;
-                                const cost = RICE_CARD.productionCosts[task];
+                                const cost = CORN_CARD.productionCosts[task];
                                 return (
                                     <Button
                                         key={task}
                                         label={`Fund ${label} (${cost.gold} Gold)`}
                                         disabled={!hasWholeGold(wallet, cost)}
-                                        onClick={() => fundRiceProduction(crop.id, task)}
+                                        onClick={() => fundCornProduction(crop.id, task)}
                                     />
                                 );
                             })}
-                            {isRiceProductionPaid(crop) && (
+                            {isCornProductionPaid(crop) && (
                                 <Button
-                                    label="Harvest Rice"
-                                    onClick={() => harvestRice(crop.id)}
+                                    label="Harvest Corn"
+                                    onClick={() => harvestCorn(crop.id)}
                                 />
                             )}
                         </div>
                     )}
 
-                    {!isRiceDeveloped(crop) && (
+                    {!isCashCropDeveloped(crop) && (
                         <p className="text-sm text-amber-700">
                             Complete preparation in any month to start this crop’s three-month cycle.
                         </p>

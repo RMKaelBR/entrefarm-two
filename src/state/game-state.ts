@@ -11,8 +11,22 @@ import {
     prepareChildForHousehold,
     updateChildById,
 } from '@/game-data/family/family-functions';
-import { RICE_CARD } from '@/game-data/crop/crop-data';
+import { CORN_CARD, RICE_CARD } from '@/game-data/crop/crop-data';
 import {
+    addCornMaintenance,
+    createCornCrop,
+    createCornProduce,
+    getAssignedCornLand,
+    getCashCropStage,
+    getCornYield,
+    isEligibleCornLand,
+    isCashCropMature,
+    isCornProductionPaid,
+    isDevelopmentTask,
+    isRiceProductionTask,
+    isCornProductionTask,
+    markCornDevelopmentPaid,
+    markCornProductionPaid,
     addRiceMaintenance,
     createRiceCrop,
     createRiceProduce,
@@ -301,9 +315,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         set((state) => {
             const crop = state.crops.find((item) => item.id === cropId);
+            if (!crop || crop.kind !== "rice" || !isDevelopmentTask(task)) return state;
             const cost = RICE_CARD.developmentCosts[task];
 
-            if (!crop || crop.development[task]) return state;
+            if (getRiceStage(crop) !== "preparation" || crop.development[task]) return state;
             if (!hasWholeGold(state.wallet, cost)) return state;
 
             committed = true;
@@ -312,7 +327,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 wallet: subCurrency(state.wallet, cost),
                 crops: state.crops.map((item) =>
                     item.id === cropId
-                        ? markRiceDevelopmentPaid(item, task)
+                        ? markRiceDevelopmentPaid(crop, task)
                         : item
                 ),
             };
@@ -327,8 +342,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         set((state) => {
             const crop = state.crops.find((item) => item.id === cropId);
 
-            if (!crop || getRiceStage(crop) !== "maintenance") return state;
-            if (!crop || crop.maintenancePaid >= RICE_CARD.maintenanceSpaces) {
+            if (!crop || crop.kind !== "rice" || getRiceStage(crop) !== "maintenance") return state;
+            if (crop.maintenancePaid >= RICE_CARD.maintenanceSpaces) {
                 return state;
             }
             if (!hasWholeGold(state.wallet, RICE_CARD.maintenanceSpaceCost)) {
@@ -340,7 +355,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 ...state,
                 wallet: subCurrency(state.wallet, RICE_CARD.maintenanceSpaceCost),
                 crops: state.crops.map((item) =>
-                    item.id === cropId ? addRiceMaintenance(item) : item
+                    item.id === cropId ? addRiceMaintenance(crop) : item
                 ),
             };
         });
@@ -353,6 +368,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         set((state) => {
             const crop = state.crops.find((item) => item.id === cropId);
+            if (!crop || crop.kind !== "rice" || !isRiceProductionTask(task)) return state;
             const cost = RICE_CARD.productionCosts[task];
 
             if (!crop || !isRiceMature(crop) || crop.production[task]) {
@@ -366,7 +382,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 wallet: subCurrency(state.wallet, cost),
                 crops: state.crops.map((item) =>
                     item.id === cropId
-                        ? markRiceProductionPaid(item, task)
+                        ? markRiceProductionPaid(crop, task)
                         : item
                 ),
             };
@@ -381,11 +397,144 @@ export const useGameStore = create<GameState>((set, get) => ({
         set((state) => {
             const crop = state.crops.find((item) => item.id === cropId);
 
-            if (!crop || !isRiceMature(crop) || !isRiceProductionPaid(crop)) {
+            if (!crop || crop.kind !== "rice" || !isRiceMature(crop) || !isRiceProductionPaid(crop)) {
                 return state;
             }
 
             const produce = createRiceProduce(getRiceYield(crop));
+            committed = true;
+            return {
+                ...state,
+                crops: state.crops.filter((item) => item.id !== cropId),
+                produceInventory: [...state.produceInventory, ...produce],
+            };
+        });
+
+        return committed;
+    },
+
+    startCornPlanting: (landId) => {
+        let committed = false;
+
+        set((state) => {
+            const land = getAssignedCornLand(state.lands);
+            if (!land || land.id !== landId || !isEligibleCornLand(land)) return state;
+            if (state.crops.some((crop) => crop.landId === landId)) return state;
+            if (!hasWholeGold(state.wallet, CORN_CARD.seedCost)) return state;
+
+            const crop = createCornCrop(landId, state.year, state.month);
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, CORN_CARD.seedCost),
+                crops: [...state.crops, crop],
+                cropPlantingHistory: [
+                    ...state.cropPlantingHistory,
+                    {
+                        cropId: crop.id,
+                        kind: crop.kind,
+                        landId,
+                        year: state.year,
+                    },
+                ],
+            };
+        });
+
+        return committed;
+    },
+
+    fundCornDevelopment: (cropId, task) => {
+        let committed = false;
+
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+            if (!crop || crop.kind !== "corn" || !isDevelopmentTask(task)) return state;
+            const cost = CORN_CARD.developmentCosts[task];
+
+            if (getCashCropStage(crop) !== "preparation" || crop.development[task]) return state;
+            if (!hasWholeGold(state.wallet, cost)) return state;
+
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, cost),
+                crops: state.crops.map((item) =>
+                    item.id === cropId
+                        ? markCornDevelopmentPaid(crop, task)
+                        : item
+                ),
+            };
+        });
+
+        return committed;
+    },
+
+    fundCornMaintenance: (cropId) => {
+        let committed = false;
+
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+
+            if (!crop || crop.kind !== "corn" || getCashCropStage(crop) !== "maintenance") return state;
+            if (crop.maintenancePaid >= CORN_CARD.maintenanceSpaces) {
+                return state;
+            }
+            if (!hasWholeGold(state.wallet, CORN_CARD.maintenanceSpaceCost)) {
+                return state;
+            }
+
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, CORN_CARD.maintenanceSpaceCost),
+                crops: state.crops.map((item) =>
+                    item.id === cropId ? addCornMaintenance(crop) : item
+                ),
+            };
+        });
+
+        return committed;
+    },
+
+    fundCornProduction: (cropId, task) => {
+        let committed = false;
+
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+            if (!crop || crop.kind !== "corn" || !isCornProductionTask(task)) return state;
+            const cost = CORN_CARD.productionCosts[task];
+
+            if (!crop || !isCashCropMature(crop) || crop.production[task]) {
+                return state;
+            }
+            if (!hasWholeGold(state.wallet, cost)) return state;
+
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, cost),
+                crops: state.crops.map((item) =>
+                    item.id === cropId
+                        ? markCornProductionPaid(crop, task)
+                        : item
+                ),
+            };
+        });
+
+        return committed;
+    },
+
+    harvestCorn: (cropId) => {
+        let committed = false;
+
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+
+            if (!crop || crop.kind !== "corn" || !isCashCropMature(crop) || !isCornProductionPaid(crop)) {
+                return state;
+            }
+
+            const produce = createCornProduce(getCornYield(crop));
             committed = true;
             return {
                 ...state,

@@ -1,7 +1,11 @@
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
-import { RICE_CARD } from "./crop-data";
+import { CORN_CARD, RICE_CARD } from "./crop-data";
 import type {
+  CashCrop,
+  CornCrop,
+  CornDevelopmentTask,
+  CornProductionTask,
   CropPlantingRecord,
   ProduceToken,
   RiceCrop,
@@ -18,19 +22,19 @@ export const isEligibleRiceRiverland = (land: Land) =>
   && land.isCleared
   && land.isIrrigated;
 
-export const isRiceDeveloped = (crop: RiceCrop) =>
+export const isCashCropDeveloped = (crop: CashCrop) =>
   crop.purchasing.seedsPaid
   && crop.development.plowing
   && crop.development.planting;
 
-export const isRiceMature = (crop: RiceCrop) =>
+export const isCashCropMature = (crop: CashCrop) =>
   crop.maturity.timeTokens >= crop.maturity.timeTokensMax;
 
 // Only completed preparation starts the clock; each successful month advance
 // moves planting -> maintenance -> harvest, where progress stays capped.
-export const getRiceStage = (crop: RiceCrop) => {
-  if (!isRiceDeveloped(crop)) return "preparation";
-  if (isRiceMature(crop)) return "harvest";
+export const getCashCropStage = (crop: CashCrop) => {
+  if (!isCashCropDeveloped(crop)) return "preparation";
+  if (isCashCropMature(crop)) return "harvest";
   return crop.maturity.timeTokens === 0 ? "planting" : "maintenance";
 };
 
@@ -55,7 +59,7 @@ export const createRiceCrop = (
   purchasing: { seedsPaid: true },
   development: { plowing: false, planting: false },
   maintenancePaid: 0,
-  maturity: { timeTokens: 0, timeTokensMax: RICE_CARD.maturityTokens },
+  maturity: { timeTokens: 0, timeTokensMax: RICE_CARD.growthAdvancesToHarvest },
   production: { harvesting: false, hauling: false, drying: false },
 });
 
@@ -89,12 +93,12 @@ export function markRiceProductionPaid(
   };
 }
 
-export function tickRiceMaturity(
-  crops: RiceCrop[],
-): RiceCrop[] {
+export function tickCashCropMaturity<T extends CashCrop>(
+  crops: T[],
+): T[] {
   let changed = false;
-  const next = crops.map((crop) => {
-    if (!isRiceDeveloped(crop) || isRiceMature(crop)) return crop;
+  const next = crops.map((crop): T => {
+    if (!isCashCropDeveloped(crop) || isCashCropMature(crop)) return crop;
 
     changed = true;
     return {
@@ -122,3 +126,51 @@ export const createRiceProduce = (quantity: number): ProduceToken[] =>
     id: crypto.randomUUID(),
     crop: "rice" as const,
   }));
+
+export const isRiceDeveloped = (crop: RiceCrop) => isCashCropDeveloped(crop);
+export const isRiceMature = (crop: RiceCrop) => isCashCropMature(crop);
+export const getRiceStage = (crop: RiceCrop) => getCashCropStage(crop);
+export const tickRiceMaturity = (crops: RiceCrop[]) => tickCashCropMaturity(crops);
+
+// Temporary assignment; general corn eligibility is independent of parcel origin.
+export const getAssignedCornLand = (lands: Land[]) =>
+  lands.find((land) => land.origin === "plains");
+export const isEligibleCornLand = (land: Land) => land.isCleared;
+
+export const isDevelopmentTask = (task: unknown): task is RiceDevelopmentTask =>
+  task === "plowing" || task === "planting";
+export const isRiceProductionTask = (task: unknown): task is RiceProductionTask =>
+  task === "harvesting" || task === "hauling" || task === "drying";
+export const isCornProductionTask = (task: unknown): task is CornProductionTask =>
+  task === "picking" || task === "shelling" || task === "hauling" || task === "drying";
+
+export const createCornCrop = (landId: Land["id"], year: number, month: number): CornCrop => ({
+  id: crypto.randomUUID(),
+  kind: "corn",
+  landId,
+  startedYear: year,
+  startedMonth: month,
+  purchasing: { seedsPaid: true },
+  development: { plowing: false, planting: false },
+  maintenancePaid: 0,
+  maturity: { timeTokens: 0, timeTokensMax: CORN_CARD.growthAdvancesToHarvest },
+  production: { picking: false, shelling: false, hauling: false, drying: false },
+});
+
+export function markCornDevelopmentPaid(crop: CornCrop, task: CornDevelopmentTask): CornCrop {
+  if (crop.development[task]) return crop;
+  return { ...crop, development: { ...crop.development, [task]: true } };
+}
+export function addCornMaintenance(crop: CornCrop): CornCrop {
+  if (crop.maintenancePaid >= CORN_CARD.maintenanceSpaces) return crop;
+  return { ...crop, maintenancePaid: crop.maintenancePaid + 1 };
+}
+export function markCornProductionPaid(crop: CornCrop, task: CornProductionTask): CornCrop {
+  if (crop.production[task]) return crop;
+  return { ...crop, production: { ...crop.production, [task]: true } };
+}
+export const isCornProductionPaid = (crop: CornCrop) => Object.values(crop.production).every(Boolean);
+export const getCornYield = (crop: CornCrop) =>
+  crop.maintenancePaid === CORN_CARD.maintenanceSpaces ? CORN_CARD.highYield : CORN_CARD.lowYield;
+export const createCornProduce = (quantity: number): ProduceToken[] =>
+  Array.from({ length: quantity }, () => ({ id: crypto.randomUUID(), crop: "corn" }));

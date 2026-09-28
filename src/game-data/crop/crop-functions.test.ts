@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { createLand } from "../land/land-functions";
 import { RICE_CARD } from "./crop-data";
 import {
+  isEligibleCornLand,
+  isCornProductionTask,
+  isRiceProductionTask,
+  isDevelopmentTask,
   addRiceMaintenance,
   countRicePlantingsForYear,
   createRiceCrop,
@@ -99,5 +103,26 @@ describe("irrigated rice rules", () => {
     expect(produce).toHaveLength(5);
     expect(produce.every((token) => token.crop === "rice")).toBe(true);
     expect(new Set(produce.map((token) => token.id)).size).toBe(5);
+  });
+});
+
+describe("corn eligibility and task boundaries", () => {
+  it("allows every cleared terrain regardless of the temporary assignment", () => {
+    for (const origin of ["foothills", "plains", "riverlands"] as const) {
+      expect(isEligibleCornLand(createLand(origin))).toBe(true);
+    }
+    const forest = createLand("forestedPlains");
+    expect(isEligibleCornLand(forest)).toBe(false);
+    expect(isEligibleCornLand({ ...forest, origin: "forestedPlains", category: "plains", isCleared: true, isIrrigated: false })).toBe(true);
+  });
+  it("rejects unknown or cross-crop task values", () => {
+    for (const value of [undefined, null, {}, "toString", "unknown"]) {
+      expect(isDevelopmentTask(value)).toBe(false);
+      expect(isCornProductionTask(value)).toBe(false);
+      expect(isRiceProductionTask(value)).toBe(false);
+    }
+    expect(isCornProductionTask("harvesting")).toBe(false);
+    expect(isRiceProductionTask("picking")).toBe(false);
+    expect(isRiceProductionTask("shelling")).toBe(false);
   });
 });

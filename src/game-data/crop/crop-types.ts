@@ -1,7 +1,7 @@
 import type { Land } from "../land/land-types";
 import type { TokenTrack } from "../types";
 
-export type CropKind = "rice";
+export type CropKind = "rice" | "corn";
 export type RiceDevelopmentTask = "plowing" | "planting";
 export type RiceProductionTask = "harvesting" | "hauling" | "drying";
 
@@ -18,9 +18,17 @@ export type RiceCrop = {
   production: Record<RiceProductionTask, boolean>;
 };
 
+export type CornDevelopmentTask = RiceDevelopmentTask;
+export type CornProductionTask = "picking" | "shelling" | "hauling" | "drying";
+export type CornCrop = Omit<RiceCrop, "kind" | "production"> & {
+  kind: "corn";
+  production: Record<CornProductionTask, boolean>;
+};
+export type CashCrop = RiceCrop | CornCrop;
+
 export type CropPlantingRecord = {
-  cropId: RiceCrop["id"];
-  kind: RiceCrop["kind"];
+  cropId: CashCrop["id"];
+  kind: CropKind;
   landId: Land["id"];
   year: number;
 };

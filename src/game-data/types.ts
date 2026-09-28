@@ -1,4 +1,8 @@
 import type {
+  CashCrop,
+  CornCrop,
+  CornDevelopmentTask,
+  CornProductionTask,
   CropPlantingRecord,
   ProduceToken,
   RiceCrop,
@@ -17,7 +21,7 @@ export type GameState = {
     lands: Land[];
     loans: Loan[];
     children: Child[];
-    crops: RiceCrop[];
+    crops: CashCrop[];
     cropPlantingHistory: CropPlantingRecord[];
     produceInventory: ProduceToken[];
     hasActiveGame: boolean;
@@ -50,6 +54,11 @@ export type GameState = {
       task: RiceProductionTask,
     ) => boolean;
     harvestRice: (cropId: RiceCrop["id"]) => boolean;
+    startCornPlanting: (landId: Land["id"]) => boolean;
+    fundCornDevelopment: (cropId: CornCrop["id"], task: CornDevelopmentTask) => boolean;
+    fundCornMaintenance: (cropId: CornCrop["id"]) => boolean;
+    fundCornProduction: (cropId: CornCrop["id"], task: CornProductionTask) => boolean;
+    harvestCorn: (cropId: CornCrop["id"]) => boolean;
     resetAll: () => void;
 };
 
