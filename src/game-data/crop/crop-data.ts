@@ -1,5 +1,7 @@
 import type { Currency } from "../types";
 import type {
+  CashCrop,
+  CropKind,
   CornDevelopmentTask,
   CornProductionTask,
   RiceDevelopmentTask,
@@ -48,3 +50,23 @@ export const CORN_CARD = {
   highYield: 6,
   lowYield: 4,
 } as const;
+
+type CropOf<K extends CropKind> = Extract<CashCrop, { kind: K }>;
+type CropCards = {
+  [K in CropKind]: {
+    seedCost: Currency;
+    developmentCosts: Record<keyof CropOf<K>["development"], Currency>;
+    productionCosts: Record<keyof CropOf<K>["production"], Currency>;
+    maintenanceSpaceCost: Currency;
+    maintenanceSpaces: number;
+    sourceMaturitySpaces: number;
+    growthAdvancesToHarvest: number;
+    highYield: number;
+    lowYield: number;
+  };
+};
+
+export const CROP_CARDS = {
+  rice: RICE_CARD,
+  corn: CORN_CARD,
+} satisfies CropCards;

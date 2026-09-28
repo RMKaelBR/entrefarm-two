@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createCornCrop, createRiceCrop, getAssignedCornLand, getCashCropStage } from "@/game-data/crop/crop-functions";
+import { createCrop, getAssignedCornLand, getCashCropStage } from "@/game-data/crop/crop-functions";
 import { createLand } from "@/game-data/land/land-functions";
 import { createLoan } from "@/game-data/loan/loan-functions";
 import { useGameStore } from "./game-state";
@@ -13,17 +13,17 @@ const corn = () => {
 const start = () => {
   const land = getAssignedCornLand(state().lands);
   if (!land) throw new Error("Missing Plains fixture");
-  expect(state().startCornPlanting(land.id)).toBe(true);
+  expect(state().startCropPlanting("corn", land.id)).toBe(true);
   return corn().id;
 };
 const develop = (id: string) => {
-  expect(state().fundCornDevelopment(id, "plowing")).toBe(true);
-  expect(state().fundCornDevelopment(id, "planting")).toBe(true);
+  expect(state().fundCropDevelopment(id, "plowing")).toBe(true);
+  expect(state().fundCropDevelopment(id, "planting")).toBe(true);
 };
 const produce = (id: string) => {
   for (const [task, cost] of [["picking", 2], ["shelling", 1], ["hauling", 2], ["drying", 3]] as const) {
     const gold = state().wallet.gold;
-    expect(state().fundCornProduction(id, task)).toBe(true);
+    expect(state().fundCropProduction(id, task)).toBe(true);
     expect(state().wallet.gold).toBe(gold - cost);
   }
 };
@@ -43,13 +43,13 @@ describe("corn placement and payments", () => {
   it("uses only the first owned Plains, independent of irrigation", () => {
     const second = createLand("plains");
     useGameStore.setState({ lands: [...state().lands, second] });
-    rejected(() => state().startCornPlanting(second.id));
-    rejected(() => state().startCornPlanting(state().lands[0].id));
-    rejected(() => state().startCornPlanting("unknown"));
+    rejected(() => state().startCropPlanting("corn", second.id));
+    rejected(() => state().startCropPlanting("corn", state().lands[0].id));
+    rejected(() => state().startCropPlanting("corn", "unknown"));
     const id = start();
     expect(state().wallet.gold).toBe(19);
     expect(state().cropPlantingHistory[0]).toMatchObject({ cropId: id, kind: "corn" });
-    rejected(() => state().startCornPlanting(corn().landId));
+    rejected(() => state().startCropPlanting("corn", corn().landId));
   });
 
   it.each([false, true])("accepts cleared Plains with irrigation=%s", (isIrrigated) => {
@@ -59,92 +59,104 @@ describe("corn placement and payments", () => {
 
   it("rejects missing, uncleared, or occupied Plains without charging", () => {
     useGameStore.setState({ lands: [] });
-    rejected(() => state().startCornPlanting("missing"));
+    rejected(() => state().startCropPlanting("corn", "missing"));
     const land = { ...createLand("plains"), origin: "plains", category: "plains", isCleared: false, isIrrigated: false } as const;
     useGameStore.setState({ lands: [land] });
-    rejected(() => state().startCornPlanting(land.id));
-    useGameStore.setState({ lands: [{ ...land, isCleared: true }], crops: [createRiceCrop(land.id, 1, 1)] });
-    rejected(() => state().startCornPlanting(land.id));
+    rejected(() => state().startCropPlanting("corn", land.id));
+    useGameStore.setState({ lands: [{ ...land, isCleared: true }], crops: [createCrop("rice", land.id, 1, 1)] });
+    rejected(() => state().startCropPlanting("corn", land.id));
   });
 
   it("requires whole gold and rejects duplicates, invalid tasks and stages", () => {
     useGameStore.setState({ wallet: { gold: 0, silver: 9 } });
-    rejected(() => state().startCornPlanting(state().lands[1].id));
+    rejected(() => state().startCropPlanting("corn", state().lands[1].id));
     useGameStore.setState({ wallet: { gold: 20, silver: 0 } });
     const id = start();
-    rejected(() => state().fundCornMaintenance(id));
-    rejected(() => state().fundCornProduction(id, "picking"));
-    rejected(() => state().harvestCorn(id));
-    rejected(() => state().fundCornDevelopment("unknown", "plowing"));
+    rejected(() => state().fundCropMaintenance(id));
+    rejected(() => state().fundCropProduction(id, "picking"));
+    rejected(() => state().harvestCrop(id));
+    rejected(() => state().fundCropDevelopment("unknown", "plowing"));
     // Exercise runtime boundaries that JavaScript callers can reach.
     // @ts-expect-error Deliberately invalid task
-    rejected(() => state().fundCornDevelopment(id, "toString"));
-    // @ts-expect-error Deliberately invalid task
-    rejected(() => state().fundCornProduction(id, "harvesting"));
+    rejected(() => state().fundCropDevelopment(id, "toString"));
+    rejected(() => state().fundCropProduction(id, "harvesting"));
     useGameStore.setState({ wallet: { gold: 1, silver: 9 } });
-    rejected(() => state().fundCornDevelopment(id, "plowing"));
+    rejected(() => state().fundCropDevelopment(id, "plowing"));
     useGameStore.setState({ wallet: { gold: 20, silver: 0 } });
-    expect(state().fundCornDevelopment(id, "plowing")).toBe(true);
+    expect(state().fundCropDevelopment(id, "plowing")).toBe(true);
     expect(state().wallet.gold).toBe(18);
-    rejected(() => state().fundCornDevelopment(id, "plowing"));
-    expect(state().fundCornDevelopment(id, "planting")).toBe(true);
+    rejected(() => state().fundCropDevelopment(id, "plowing"));
+    expect(state().fundCropDevelopment(id, "planting")).toBe(true);
     expect(state().wallet.gold).toBe(17);
     state().advanceWorldTime();
     useGameStore.setState({ wallet: { gold: 0, silver: 9 } });
-    rejected(() => state().fundCornMaintenance(id));
+    rejected(() => state().fundCropMaintenance(id));
     state().advanceWorldTime();
-    rejected(() => state().fundCornMaintenance(id));
-    rejected(() => state().fundCornProduction(id, "picking"));
+    rejected(() => state().fundCropMaintenance(id));
+    rejected(() => state().fundCropProduction(id, "picking"));
     useGameStore.setState({ wallet: { gold: 20, silver: 0 } });
-    expect(state().fundCornProduction(id, "picking")).toBe(true);
-    rejected(() => state().fundCornProduction(id, "picking"));
-    rejected(() => state().harvestCorn(id));
+    expect(state().fundCropProduction(id, "picking")).toBe(true);
+    rejected(() => state().fundCropProduction(id, "picking"));
+    rejected(() => state().harvestCrop(id));
   });
 
-  it("rejects every cross-kind action", () => {
+  it("dispatches shared actions by stored kind and rejects incompatible tasks at maturity", () => {
     const cornId = start();
-    expect(state().startRicePlanting(state().lands[0].id)).toBe(true);
+    expect(state().startCropPlanting("rice", state().lands[0].id)).toBe(true);
     const riceId = state().crops.find((crop) => crop.kind === "rice")?.id;
     if (!riceId) throw new Error("Missing rice");
-    for (const id of [cornId, "unknown"]) {
-      rejected(() => state().fundRiceDevelopment(id, "plowing"));
-      rejected(() => state().fundRiceMaintenance(id));
-      rejected(() => state().fundRiceProduction(id, "hauling"));
-      rejected(() => state().harvestRice(id));
+    for (const id of [cornId, riceId]) develop(id);
+    state().advanceWorldTime();
+    state().advanceWorldTime();
+    rejected(() => state().fundCropProduction(riceId, "picking"));
+    rejected(() => state().fundCropProduction(riceId, "shelling"));
+    rejected(() => state().fundCropProduction(cornId, "harvesting"));
+    for (const id of [cornId, riceId]) {
+      // @ts-expect-error Deliberate JavaScript runtime input.
+      rejected(() => state().fundCropProduction(id, "toString"));
+      // @ts-expect-error Deliberate JavaScript runtime input.
+      rejected(() => state().fundCropProduction(id, "unknown"));
     }
-    for (const id of [riceId, "unknown"]) {
-      rejected(() => state().fundCornDevelopment(id, "plowing"));
-      rejected(() => state().fundCornMaintenance(id));
-      rejected(() => state().fundCornProduction(id, "hauling"));
-      rejected(() => state().harvestCorn(id));
-    }
+    const rice = state().crops.find((crop) => crop.id === riceId);
+    const before = state().wallet.gold;
+    expect(state().fundCropProduction(cornId, "hauling")).toBe(true);
+    expect(state().wallet.gold).toBe(before - 2);
+    expect(state().crops.find((crop) => crop.id === riceId)).toBe(rice);
+    expect(state().fundCropProduction(riceId, "hauling")).toBe(true);
+    expect(state().wallet.gold).toBe(before - 3);
+    rejected(() => state().fundCropDevelopment("unknown", "plowing"));
+    rejected(() => state().fundCropMaintenance("unknown"));
+    rejected(() => state().fundCropProduction("unknown", "hauling"));
+    rejected(() => state().harvestCrop("unknown"));
+    // @ts-expect-error Deliberate JavaScript runtime input.
+    rejected(() => state().startCropPlanting("toString", state().lands[0].id));
   });
 });
 
 describe("corn harvest and independent time", () => {
   it.each([0, 1, 2, 3, 4])("settles maintenance=%i once, retaining produce and requiring replant purchase", (maintenance) => {
-    const rice = createRiceCrop(state().lands[0].id, 1, 1);
+    const rice = createCrop("rice", state().lands[0].id, 1, 1);
     const held = [{ id: "held-rice", crop: "rice" }, { id: "held-corn", crop: "corn" }] as const;
     useGameStore.setState({ crops: [rice], produceInventory: [...held] });
     const id = start();
     develop(id);
     state().advanceWorldTime();
-    for (let i = 0; i < maintenance; i++) expect(state().fundCornMaintenance(id)).toBe(true);
-    if (maintenance === 4) rejected(() => state().fundCornMaintenance(id));
+    for (let i = 0; i < maintenance; i++) expect(state().fundCropMaintenance(id)).toBe(true);
+    if (maintenance === 4) rejected(() => state().fundCropMaintenance(id));
     state().advanceWorldTime();
     produce(id);
     const ready = corn();
     for (let i = 0; i < 14; i++) state().advanceWorldTime();
     expect(corn()).toBe(ready);
-    rejected(() => state().startCornPlanting(ready.landId));
-    expect(state().harvestCorn(id)).toBe(true);
+    rejected(() => state().startCropPlanting("corn", ready.landId));
+    expect(state().harvestCrop(id)).toBe(true);
     expect(state().wallet.gold).toBe(8 - maintenance);
     expect(state().bank).toEqual({ gold: 7, silver: 0 });
     expect(state().crops).toEqual([rice]);
     expect(state().produceInventory.slice(0, 2)).toEqual(held);
     expect(state().produceInventory.filter((token) => token.crop === "corn")).toHaveLength(1 + (maintenance === 4 ? 6 : 4));
     expect(new Set(state().produceInventory.map((token) => token.id)).size).toBe(state().produceInventory.length);
-    rejected(() => state().harvestCorn(id));
+    rejected(() => state().harvestCrop(id));
     start();
     expect(corn()).toMatchObject({ development: { plowing: false, planting: false }, maintenancePaid: 0, maturity: { timeTokens: 0 }, production: { picking: false, shelling: false, hauling: false, drying: false } });
     expect(corn().id).not.toBe(id);
@@ -167,10 +179,10 @@ describe("corn harvest and independent time", () => {
 
   it("staggered rice and corn cross December independently", () => {
     useGameStore.setState({ month: 12, quarter: 4, wallet: { gold: 40, silver: 0 } });
-    state().startRicePlanting(state().lands[0].id);
+    state().startCropPlanting("rice", state().lands[0].id);
     const rice = state().crops[0];
-    state().fundRiceDevelopment(rice.id, "plowing");
-    state().fundRiceDevelopment(rice.id, "planting");
+    state().fundCropDevelopment(rice.id, "plowing");
+    state().fundCropDevelopment(rice.id, "planting");
     const id = start();
     state().advanceWorldTime();
     expect(state()).toMatchObject({ month: 1, year: 2 });
@@ -181,18 +193,18 @@ describe("corn harvest and independent time", () => {
     expect(state().crops.map(getCashCropStage)).toEqual(["harvest", "harvest"]);
     const matureRice = state().crops[0];
     produce(id);
-    state().harvestCorn(id);
+    state().harvestCrop(id);
     expect(state().crops).toEqual([matureRice]);
   });
 
   it("does not progress either crop when December loan decisions block time", () => {
     const id = start();
     develop(id);
-    state().startRicePlanting(state().lands[0].id);
+    state().startCropPlanting("rice", state().lands[0].id);
     const rice = state().crops.find((crop) => crop.kind === "rice");
     if (!rice) throw new Error("Missing rice");
-    state().fundRiceDevelopment(rice.id, "plowing");
-    state().fundRiceDevelopment(rice.id, "planting");
+    state().fundCropDevelopment(rice.id, "plowing");
+    state().fundCropDevelopment(rice.id, "planting");
     useGameStore.setState({ month: 12, quarter: 4, loans: [createLoan(state().lands[0], 1)] });
     const crops = state().crops;
     state().advanceWorldTime();
@@ -218,8 +230,57 @@ describe("corn harvest and independent time", () => {
   });
 
   it.each(["startNewGame", "resetAll"] as const)("%s clears mixed crops without planting or charging", (action) => {
-    useGameStore.setState({ crops: [createCornCrop("p", 1, 1), createRiceCrop("r", 1, 1)], produceInventory: [{ id: "c", crop: "corn" }, { id: "r", crop: "rice" }], cropPlantingHistory: [{ cropId: "c", kind: "corn", landId: "p", year: 1 }] });
+    useGameStore.setState({ crops: [createCrop("corn", "p", 1, 1), createCrop("rice", "r", 1, 1)], produceInventory: [{ id: "c", crop: "corn" }, { id: "r", crop: "rice" }], cropPlantingHistory: [{ cropId: "c", kind: "corn", landId: "p", year: 1 }] });
     state()[action]();
     expect(state()).toMatchObject({ crops: [], produceInventory: [], cropPlantingHistory: [], wallet: { gold: 20, silver: 0 } });
+  });
+});
+
+describe("shared transaction boundaries", () => {
+  it.each(["rice", "corn"] as const)("keeps every %s payment atomic and charges exact costs", (kind) => {
+    const land = state().lands[kind === "rice" ? 0 : 1];
+    useGameStore.setState({ wallet: { gold: 0, silver: 9 } });
+    rejected(() => state().startCropPlanting(kind, land.id));
+    useGameStore.setState({ wallet: { gold: 20, silver: 0 } });
+    expect(state().startCropPlanting(kind, land.id)).toBe(true);
+    expect(state().wallet.gold).toBe(19);
+    const id = state().crops[0].id;
+    for (const [task, cost] of [["plowing", 2], ["planting", 1]] as const) {
+      useGameStore.setState({ wallet: { gold: cost - 1, silver: 9 } });
+      rejected(() => state().fundCropDevelopment(id, task));
+      useGameStore.setState({ wallet: { gold: cost, silver: 9 } });
+      expect(state().fundCropDevelopment(id, task)).toBe(true);
+      expect(state().wallet).toEqual({ gold: 0, silver: 9 });
+      rejected(() => state().fundCropDevelopment(id, task));
+    }
+    state().advanceWorldTime();
+    rejected(() => state().fundCropMaintenance(id));
+    useGameStore.setState({ wallet: { gold: 4, silver: 9 } });
+    for (let i = 0; i < 4; i++) {
+      expect(state().fundCropMaintenance(id)).toBe(true);
+      expect(state().wallet.gold).toBe(3 - i);
+    }
+    useGameStore.setState({ wallet: { gold: 20, silver: 9 } });
+    rejected(() => state().fundCropMaintenance(id));
+    state().advanceWorldTime();
+    const tasks = kind === "rice"
+      ? [["harvesting", 1], ["hauling", 1], ["drying", 2]] as const
+      : [["picking", 2], ["shelling", 1], ["hauling", 2], ["drying", 3]] as const;
+    for (const [task, cost] of tasks) {
+      rejected(() => state().harvestCrop(id));
+      useGameStore.setState({ wallet: { gold: cost - 1, silver: 9 } });
+      rejected(() => state().fundCropProduction(id, task));
+      useGameStore.setState({ wallet: { gold: cost, silver: 9 } });
+      expect(state().fundCropProduction(id, task)).toBe(true);
+      expect(state().wallet).toEqual({ gold: 0, silver: 9 });
+      rejected(() => state().fundCropProduction(id, task));
+    }
+    const before = state();
+    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().wallet).toBe(before.wallet);
+    expect(state().bank).toBe(before.bank);
+    expect(state().cropPlantingHistory).toBe(before.cropPlantingHistory);
+    expect(state().produceInventory).toHaveLength(kind === "rice" ? 5 : 6);
+    rejected(() => state().harvestCrop(id));
   });
 });

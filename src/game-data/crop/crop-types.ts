@@ -37,3 +37,6 @@ export type ProduceToken = {
   id: string;
   crop: CropKind;
 };
+
+export type CropDevelopmentTask = RiceDevelopmentTask | CornDevelopmentTask;
+export type CropProductionTask = RiceProductionTask | CornProductionTask;

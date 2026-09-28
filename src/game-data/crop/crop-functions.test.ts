@@ -6,19 +6,19 @@ import {
   isCornProductionTask,
   isRiceProductionTask,
   isDevelopmentTask,
-  addRiceMaintenance,
+  prepareCropMaintenance,
   countRicePlantingsForYear,
-  createRiceCrop,
-  createRiceProduce,
-  getRiceStage,
-  getRiceYield,
+  createCrop,
+  createCropProduce,
+  getCashCropStage,
+  getCropYield,
   hasWholeGold,
   isEligibleRiceRiverland,
-  isRiceDeveloped,
-  isRiceProductionPaid,
-  markRiceDevelopmentPaid,
-  markRiceProductionPaid,
-  tickRiceMaturity,
+  isCashCropDeveloped,
+  isCropProductionPaid,
+  prepareCropDevelopment,
+  prepareCropProduction,
+  tickCashCropMaturity,
 } from "./crop-functions";
 import type { CropPlantingRecord } from "./crop-types";
 
@@ -37,54 +37,58 @@ describe("irrigated rice rules", () => {
   });
 
   it("marks development immutably and ignores repeated funding", () => {
-    const crop = createRiceCrop("land-1", 1, 1);
-    const plowed = markRiceDevelopmentPaid(crop, "plowing");
-    const developed = markRiceDevelopmentPaid(plowed, "planting");
+    const crop = createCrop("rice", "land-1", 1, 1);
+    const plowed = prepareCropDevelopment(crop, "plowing")!.crop;
+    const developed = prepareCropDevelopment(plowed, "planting")!.crop;
 
     expect(crop.development.plowing).toBe(false);
-    expect(isRiceDeveloped(plowed)).toBe(false);
-    expect(isRiceDeveloped(developed)).toBe(true);
-    expect(markRiceDevelopmentPaid(developed, "planting")).toBe(developed);
+    expect(isCashCropDeveloped(plowed)).toBe(false);
+    expect(isCashCropDeveloped(developed)).toBe(true);
+    expect(prepareCropDevelopment(developed, "planting")).toBeNull();
   });
 
   it("advances developed crops through three stages and keeps mature crops ready", () => {
-    const incomplete = [createRiceCrop("land-1", 1, 12)];
-    expect(tickRiceMaturity(incomplete)).toBe(incomplete);
-    expect(getRiceStage(incomplete[0])).toBe("preparation");
-    const developed = markRiceDevelopmentPaid(
-      markRiceDevelopmentPaid(incomplete[0], "plowing"), "planting",
-    );
-    expect(getRiceStage(developed)).toBe("planting");
-    const maintenance = tickRiceMaturity([developed]);
-    expect(getRiceStage(maintenance[0])).toBe("maintenance");
+    const incomplete = [createCrop("rice", "land-1", 1, 12)];
+    expect(tickCashCropMaturity(incomplete)).toBe(incomplete);
+    expect(getCashCropStage(incomplete[0])).toBe("preparation");
+    const developed = prepareCropDevelopment(
+      prepareCropDevelopment(incomplete[0], "plowing")!.crop, "planting",
+    )!.crop;
+    expect(getCashCropStage(developed)).toBe("planting");
+    const maintenance = tickCashCropMaturity([developed]);
+    expect(getCashCropStage(maintenance[0])).toBe("maintenance");
     expect(developed.maturity.timeTokens).toBe(0);
-    const mature = tickRiceMaturity(maintenance);
-    expect(getRiceStage(mature[0])).toBe("harvest");
-    expect(tickRiceMaturity(mature)).toBe(mature);
+    const mature = tickCashCropMaturity(maintenance);
+    expect(getCashCropStage(mature[0])).toBe("harvest");
+    expect(tickCashCropMaturity(mature)).toBe(mature);
   });
 
   it("caps maintenance and selects low or high yield", () => {
-    const crop = createRiceCrop("land-1", 1, 1);
-    const once = addRiceMaintenance(crop);
-    const twice = addRiceMaintenance(once);
-    const three = addRiceMaintenance(twice);
-    const four = addRiceMaintenance(three);
+    const crop = createCrop("rice", "land-1", 1, 1);
+    const ready = { ...crop, development: { plowing: true, planting: true }, maturity: { timeTokens: 1, timeTokensMax: 2 } };
+    expect(prepareCropMaintenance(crop)).toBeNull();
+    const once = prepareCropMaintenance(ready)!.crop;
+    const twice = prepareCropMaintenance(once)!.crop;
+    const three = prepareCropMaintenance(twice)!.crop;
+    const four = prepareCropMaintenance(three)!.crop;
 
-    expect(getRiceYield(crop)).toBe(3);
-    expect(getRiceYield(three)).toBe(3);
-    expect(getRiceYield(four)).toBe(5);
-    expect(addRiceMaintenance(four)).toBe(four);
+    expect(getCropYield(crop)).toBe(3);
+    expect(getCropYield(three)).toBe(3);
+    expect(getCropYield(four)).toBe(5);
+    expect(prepareCropMaintenance(four)).toBeNull();
   });
 
   it("tracks every required production task", () => {
-    const crop = createRiceCrop("land-1", 1, 1);
-    const harvesting = markRiceProductionPaid(crop, "harvesting");
-    const hauling = markRiceProductionPaid(harvesting, "hauling");
-    const drying = markRiceProductionPaid(hauling, "drying");
+    const crop = createCrop("rice", "land-1", 1, 1);
+    const mature = { ...crop, development: { plowing: true, planting: true }, maturity: { timeTokens: 2, timeTokensMax: 2 } };
+    expect(prepareCropProduction(crop, "harvesting")).toBeNull();
+    const harvesting = prepareCropProduction(mature, "harvesting")!.crop;
+    const hauling = prepareCropProduction(harvesting, "hauling")!.crop;
+    const drying = prepareCropProduction(hauling, "drying")!.crop;
 
-    expect(isRiceProductionPaid(hauling)).toBe(false);
-    expect(isRiceProductionPaid(drying)).toBe(true);
-    expect(markRiceProductionPaid(drying, "drying")).toBe(drying);
+    expect(isCropProductionPaid(hauling)).toBe(false);
+    expect(isCropProductionPaid(drying)).toBe(true);
+    expect(prepareCropProduction(drying, "drying")).toBeNull();
   });
 
   it("counts only rice planting records from the requested year", () => {
@@ -99,7 +103,7 @@ describe("irrigated rice rules", () => {
   });
 
   it("creates unique crop-identified produce tokens", () => {
-    const produce = createRiceProduce(5);
+    const produce = createCropProduce("rice", 5);
     expect(produce).toHaveLength(5);
     expect(produce.every((token) => token.crop === "rice")).toBe(true);
     expect(new Set(produce.map((token) => token.id)).size).toBe(5);
@@ -124,5 +128,27 @@ describe("corn eligibility and task boundaries", () => {
     expect(isCornProductionTask("harvesting")).toBe(false);
     expect(isRiceProductionTask("picking")).toBe(false);
     expect(isRiceProductionTask("shelling")).toBe(false);
+  });
+});
+
+describe("shared crop definitions", () => {
+  it.each(["rice", "corn"] as const)("preserves %s yields and rejects invalid task keys", (kind) => {
+    const crop = createCrop(kind, "land", 1, 1);
+    const mature = { ...crop, maturity: { timeTokens: 2, timeTokensMax: 2 } };
+    for (const task of [undefined, null, {}, "unknown", "toString", "__proto__"]) {
+      expect(prepareCropDevelopment(crop, task)).toBeNull();
+      expect(prepareCropProduction(mature, task)).toBeNull();
+    }
+    for (let maintenancePaid = 0; maintenancePaid <= 4; maintenancePaid++) {
+      expect(getCropYield({ ...crop, maintenancePaid })).toBe(
+        kind === "rice" ? (maintenancePaid === 4 ? 5 : 3) : (maintenancePaid === 4 ? 6 : 4),
+      );
+    }
+    expect(createCropProduce(kind, 3).every((token) => token.crop === kind)).toBe(true);
+  });
+  it("requires each rice placement property", () => {
+    const land = createLand("riverlands");
+    expect(isEligibleRiceRiverland({ ...land, origin: "riverlands", category: "plains", isCleared: false, isIrrigated: false })).toBe(false);
+    expect(isEligibleRiceRiverland({ ...land, isIrrigated: false })).toBe(false);
   });
 });
