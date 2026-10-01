@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createCrop, getAssignedCornLand, getCashCropStage } from "@/game-data/crop/crop-functions";
+import { createCrop, getCashCropStage } from "@/game-data/crop/crop-functions";
 import { createLand } from "@/game-data/land/land-functions";
 import { createLoan } from "@/game-data/loan/loan-functions";
 import { useGameStore } from "./game-state";
@@ -11,10 +11,12 @@ const corn = () => {
   return crop;
 };
 const start = () => {
-  const land = getAssignedCornLand(state().lands);
+  const land = state().lands.find((item) => item.origin === "plains");
   if (!land) throw new Error("Missing Plains fixture");
   expect(state().startCropPlanting("corn", land.id)).toBe(true);
-  return corn().id;
+  const crop = state().crops.find((item) => item.landId === land.id);
+  if (!crop) throw new Error("Missing planted crop");
+  return crop.id;
 };
 const develop = (id: string) => {
   expect(state().fundCropDevelopment(id, "plowing")).toBe(true);
@@ -40,16 +42,16 @@ beforeEach(() => useGameStore.setState({
 }));
 
 describe("corn placement and payments", () => {
-  it("uses only the first owned Plains, independent of irrigation", () => {
+  it("accepts additional Plains and Riverlands independently", () => {
     const second = createLand("plains");
     useGameStore.setState({ lands: [...state().lands, second] });
-    rejected(() => state().startCropPlanting("corn", second.id));
-    rejected(() => state().startCropPlanting("corn", state().lands[0].id));
+    expect(state().startCropPlanting("corn", second.id)).toBe(true);
+    expect(state().startCropPlanting("corn", state().lands[0].id)).toBe(true);
     rejected(() => state().startCropPlanting("corn", "unknown"));
     const id = start();
-    expect(state().wallet.gold).toBe(19);
-    expect(state().cropPlantingHistory[0]).toMatchObject({ cropId: id, kind: "corn" });
-    rejected(() => state().startCropPlanting("corn", corn().landId));
+    expect(state().wallet.gold).toBe(17);
+    expect(state().cropPlantingHistory[2]).toMatchObject({ cropId: id, kind: "corn" });
+    rejected(() => state().startCropPlanting("corn", second.id));
   });
 
   it.each([false, true])("accepts cleared Plains with irrigation=%s", (isIrrigated) => {

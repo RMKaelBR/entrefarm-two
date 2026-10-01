@@ -17,6 +17,7 @@ import {
 } from "@/game-data/loan/loan-functions";
 import { canAffordCurrency } from "@/game-data/money/calculate-money";
 import { useGameStore } from "@/state/game-state";
+import { ParcelCropPanel } from "../crops/parcel-crop";
 import { Button } from "../button";
 
 export const LandComponent = () => {
@@ -32,7 +33,7 @@ export const LandComponent = () => {
     return (
         <section className="space-y-3">
             <h2 className="font-semibold">Owned Land</h2>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                 {lands.map((land) => {
                     const clearable = canClearLand(land);
                     const irrigatable = canIrrigateLand(land);
@@ -45,10 +46,10 @@ export const LandComponent = () => {
                         : false;
 
                     return (
-                        <article key={land.id} className="space-y-3 rounded border bg-white p-4">
+                        <article key={land.id} className="min-w-0 space-y-3 rounded border bg-white p-4">
                             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
                                 <dt>Land ID</dt>
-                                <dd>{land.id}</dd>
+                                <dd className="min-w-0 break-all">{land.id}</dd>
                                 <dt>Parcel</dt>
                                 <dd>
                                     <span aria-hidden="true">
@@ -84,7 +85,7 @@ export const LandComponent = () => {
                                     <p className="text-sm text-red-700">
                                         Amount due: {loan.outstandingBalance.gold} gold {loan.outstandingBalance.silver} silver.
                                     </p>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         <Button
                                             disabled={!canRepay}
                                             label={canRepay ? "Repay Loan" : "Cannot Afford Repayment"}
@@ -135,6 +136,7 @@ export const LandComponent = () => {
                                     Land development complete.
                                 </p>
                             )}
+                            <ParcelCropPanel land={land} />
                         </article>
                     );
                 })}

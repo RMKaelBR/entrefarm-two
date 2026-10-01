@@ -11,7 +11,7 @@ import {
     prepareChildForHousehold,
     updateChildById,
 } from '@/game-data/family/family-functions';
-import { CROP_CARDS } from '@/game-data/crop/crop-data';
+import { CROP_DEFINITIONS } from '@/game-data/crop/crop-definitions';
 import {
     canPlantCropOnLand, createCrop, createCropProduce, getCropYield,
     hasWholeGold, isCropKind, isCashCropMature, isCropProductionPaid,
@@ -263,9 +263,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         set((state) => {
             if (!isCropKind(kind)) return state;
             const land = state.lands.find((item) => item.id === landId);
-            if (!land || !canPlantCropOnLand(kind, land, state.lands)) return state;
+            if (!land || !canPlantCropOnLand(kind, land)) return state;
             if (state.crops.some((crop) => crop.landId === landId)) return state;
-            const cost = CROP_CARDS[kind].seedCost;
+            const cost = CROP_DEFINITIONS[kind].purchaseCost;
             if (!hasWholeGold(state.wallet, cost)) return state;
             const crop = createCrop(kind, landId, state.year, state.month);
             committed = true;

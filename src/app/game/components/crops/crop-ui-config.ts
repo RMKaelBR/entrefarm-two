@@ -1,44 +1,17 @@
 import { CROP_CARDS } from "@/game-data/crop/crop-data";
-import {
-    getAssignedCornLand,
-    isEligibleCornLand,
-    isEligibleRiceLand,
-} from "@/game-data/crop/crop-functions";
 import type { CashCrop, CropKind, CropProductionTask } from "@/game-data/crop/crop-types";
-import type { Land } from "@/game-data/land/land-types";
 
 type CropUiConfig = {
-    name: string;
-    heading: string;
-    selectLand: (lands: Land[]) => Land | undefined;
-    isEligibleLand: (land: Land) => boolean;
-    unavailableMessage: string;
-    ineligibleMessage: string;
-    assignedParcelLabel: string | null;
     showAffordabilityWarning: boolean;
     maintenanceMessage: string;
 };
 
 export const CROP_UI_CONFIG = {
     rice: {
-        name: "Rice",
-        heading: "Rice",
-        selectLand: (lands) => lands.find((land) => land.origin === "riverlands"),
-        isEligibleLand: isEligibleRiceLand,
-        unavailableMessage: "No owned riverland is available.",
-        ineligibleMessage: "Rice requires cleared lowland.",
-        assignedParcelLabel: "Plains",
         showAffordabilityWarning: false,
         maintenanceMessage: "Maintenance is optional. Full maintenance adds two tokens to the base yield; the recorded irrigation bonus still applies.",
     },
     corn: {
-        name: "Corn",
-        heading: "Corn",
-        selectLand: getAssignedCornLand,
-        isEligibleLand: isEligibleCornLand,
-        unavailableMessage: "No owned Plains parcel is available.",
-        ineligibleMessage: "Clearing is required before planting corn.",
-        assignedParcelLabel: "Plains",
         showAffordabilityWarning: true,
         maintenanceMessage: "Maintenance is optional. Full maintenance yields six tokens; otherwise harvest yields four.",
     },
