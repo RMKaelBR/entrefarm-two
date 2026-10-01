@@ -5,9 +5,8 @@ export type CropKind = "rice" | "corn";
 export type RiceDevelopmentTask = "plowing" | "planting";
 export type RiceProductionTask = "harvesting" | "hauling" | "drying";
 
-export type RiceCrop = {
+export type CashCropBase = {
   id: string;
-  kind: "rice";
   landId: Land["id"];
   startedYear: number;
   startedMonth: number;
@@ -15,12 +14,17 @@ export type RiceCrop = {
   development: Record<RiceDevelopmentTask, boolean>;
   maintenancePaid: number;
   maturity: TokenTrack;
+};
+
+export type RiceCrop = CashCropBase & {
+  kind: "rice";
+  irrigationBonus: boolean | null;
   production: Record<RiceProductionTask, boolean>;
 };
 
 export type CornDevelopmentTask = RiceDevelopmentTask;
 export type CornProductionTask = "picking" | "shelling" | "hauling" | "drying";
-export type CornCrop = Omit<RiceCrop, "kind" | "production"> & {
+export type CornCrop = CashCropBase & {
   kind: "corn";
   production: Record<CornProductionTask, boolean>;
 };

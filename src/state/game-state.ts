@@ -284,7 +284,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         set((state) => {
             const crop = state.crops.find((item) => item.id === cropId);
             if (!crop) return state;
-            const payment = prepareCropDevelopment(crop, task);
+            const land = state.lands.find((item) => item.id === crop.landId);
+            const payment = prepareCropDevelopment(crop, task, land?.isIrrigated);
             if (!payment || !hasWholeGold(state.wallet, payment.cost)) return state;
             committed = true;
             return {

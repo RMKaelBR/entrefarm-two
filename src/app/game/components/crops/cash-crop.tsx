@@ -3,6 +3,7 @@
 import { CROP_CARDS } from "@/game-data/crop/crop-data";
 import {
     getCashCropStage,
+    getCropYield,
     hasWholeGold,
     isCashCropDeveloped,
     isCashCropMature,
@@ -127,6 +128,30 @@ export function CashCropComponent({ kind }: { kind: CropKind }) {
                             </div>
                         ))}
                     </dl>
+
+                    {crop.kind === "rice" && (
+                        <div className="space-y-1 text-sm text-stone-600">
+                            {crop.irrigationBonus === null ? (
+                                <p>
+                                    Irrigation bonus pending. Irrigate before preparation finishes
+                                    to secure one extra token for this planting.
+                                </p>
+                            ) : (
+                                <>
+                                    <p>{crop.irrigationBonus
+                                        ? "Irrigation bonus secured: +1 token."
+                                        : "No irrigation bonus for this planting."}</p>
+                                    <p>
+                                        Incomplete maintenance: {getCropYield({ ...crop, maintenancePaid: 0 })}
+                                        {" tokens. Full maintenance: "}
+                                        {getCropYield({ ...crop, maintenancePaid: card.maintenanceSpaces })}
+                                        {" tokens."}
+                                    </p>
+                                    <p>Later irrigation changes apply to a future planting.</p>
+                                </>
+                            )}
+                        </div>
+                    )}
 
                     {(phase === "preparation" || phase === "planting") && (
                         <div className="flex flex-wrap gap-2">

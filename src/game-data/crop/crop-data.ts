@@ -27,8 +27,8 @@ export const RICE_CARD = {
     hauling: gold(1),
     drying: gold(2),
   } satisfies Record<RiceProductionTask, Currency>,
-  highYield: 5,
-  lowYield: 3,
+  highYield: 4,
+  lowYield: 2,
 } as const;
 
 export const CORN_CARD = {
