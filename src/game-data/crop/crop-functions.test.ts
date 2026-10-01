@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createLand } from "../land/land-functions";
+import { clearLand, irrigateLand, createLand } from "../land/land-functions";
 import { RICE_CARD } from "./crop-data";
 import {
+  canPlantCropOnLand,
+  isCropKind,
   isEligibleCornLand,
   isCornProductionTask,
   isRiceProductionTask,
@@ -111,7 +113,7 @@ describe("irrigated rice rules", () => {
 });
 
 describe("corn eligibility and task boundaries", () => {
-  it("allows every cleared terrain regardless of the temporary assignment", () => {
+  it("allows every cleared terrain without a parcel assignment", () => {
     for (const origin of ["foothills", "plains", "riverlands"] as const) {
       expect(isEligibleCornLand(createLand(origin))).toBe(true);
     }
@@ -173,6 +175,26 @@ describe("rice lowland and snapshot boundaries", () => {
       } else {
         expect(result?.crop).not.toHaveProperty("irrigationBonus");
         expect(result?.crop.development.planting).toBe(true);
+      }
+    }
+  });
+});
+
+
+describe("registered placement rules", () => {
+  it("recognizes only implemented crop kinds", () => {
+    for (const kind of ["rice", "corn"]) expect(isCropKind(kind)).toBe(true);
+    for (const value of ["toString", "__proto__", "unknown", "", null, undefined, {}]) {
+      expect(isCropKind(value)).toBe(false);
+    }
+  });
+  it.each(["rice", "corn"] as const)("validates %s terrain and supported irrigation states", (kind) => {
+    for (const origin of ["riverlands", "plains", "forestedPlains", "foothills"] as const) {
+      const base = createLand(origin);
+      for (const land of [base, clearLand(base), irrigateLand(clearLand(base))]) {
+        expect(canPlantCropOnLand(kind, land)).toBe(
+          land.isCleared && (kind === "corn" || land.category === "plains"),
+        );
       }
     }
   });

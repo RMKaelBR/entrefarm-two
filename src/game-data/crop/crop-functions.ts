@@ -1,5 +1,6 @@
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
+import { CROP_DEFINITIONS, IMPLEMENTED_CROPS } from "./crop-definitions";
 import { CROP_CARDS } from "./crop-data";
 import type { CashCrop, CashCropBase, CropKind, CropPlantingRecord, ProduceToken } from "./crop-types";
 
@@ -7,7 +8,7 @@ export const hasWholeGold = (wallet: Currency, cost: Currency) =>
   cost.silver === 0 && wallet.gold >= cost.gold;
 
 export const isEligibleRiceLand = (land: Land) =>
-  land.category === "plains" && land.isCleared;
+  getCropPlacementBlockReason("rice", land) === null;
 
 export const isCashCropDeveloped = (crop: CashCrop) =>
   crop.purchasing.seedsPaid
@@ -53,20 +54,16 @@ const assertNever = (value: never): never => {
 };
 
 export const isCropKind = (value: unknown): value is CropKind =>
-  value === "rice" || value === "corn";
+  IMPLEMENTED_CROPS.some((definition) => definition.kind === value);
 
-// Temporary assignment; general eligibility is independent of parcel origin.
-export const getAssignedCornLand = (lands: Land[]) =>
-  lands.find((land) => land.origin === "plains");
-export const isEligibleCornLand = (land: Land) => land.isCleared;
+export const getCropPlacementBlockReason = (kind: CropKind, land: Land) =>
+  CROP_DEFINITIONS[kind].getPlacementBlockReason(land);
 
-export function canPlantCropOnLand(kind: CropKind, land: Land, lands: Land[]): boolean {
-  switch (kind) {
-    case "rice": return isEligibleRiceLand(land);
-    case "corn": return getAssignedCornLand(lands)?.id === land.id && isEligibleCornLand(land);
-    default: return assertNever(kind);
-  }
-}
+export const isEligibleCornLand = (land: Land) =>
+  getCropPlacementBlockReason("corn", land) === null;
+
+export const canPlantCropOnLand = (kind: CropKind, land: Land) =>
+  getCropPlacementBlockReason(kind, land) === null;
 
 export function createCrop(kind: CropKind, landId: Land["id"], year: number, month: number): CashCrop {
   const common = {

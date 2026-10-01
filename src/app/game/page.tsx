@@ -3,7 +3,7 @@
 import { getTimeAdvanceBlockReason, useGameStore } from "@/state/game-state";
 import { useState } from "react";
 import { Button } from "./components/button";
-import { CashCropComponent } from "./components/crops/cash-crop";
+import { ProduceInventory } from "./components/crops/produce-inventory";
 import { DiceRoller } from "./components/dice-box/dice-box";
 import { LandComponent } from "./components/land/land";
 
@@ -22,7 +22,7 @@ const GamePage = () => {
 
     const amount = { gold: Number(gold), silver: Number(silver) };
     return (
-        <section className="flex gap-4">
+        <section className="flex flex-col gap-4 lg:flex-row">
             <div className="space-y-3 flex-col">
                 <div>Game Page</div>
                 <div className="flex">
@@ -110,10 +110,9 @@ const GamePage = () => {
                 </div>
                 <DiceRoller />
             </div>
-            <section className="m-4 space-y-4">
+            <section className="min-w-0 flex-1 space-y-4">
                 <LandComponent />
-                <CashCropComponent kind="rice" />
-                <CashCropComponent kind="corn" />
+                <ProduceInventory />
             </section>
         </section>
     )
