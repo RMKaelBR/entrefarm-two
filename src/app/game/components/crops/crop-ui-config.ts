@@ -2,7 +2,7 @@ import { CROP_CARDS } from "@/game-data/crop/crop-data";
 import {
     getAssignedCornLand,
     isEligibleCornLand,
-    isEligibleRiceRiverland,
+    isEligibleRiceLand,
 } from "@/game-data/crop/crop-functions";
 import type { CashCrop, CropKind, CropProductionTask } from "@/game-data/crop/crop-types";
 import type { Land } from "@/game-data/land/land-types";
@@ -22,14 +22,14 @@ type CropUiConfig = {
 export const CROP_UI_CONFIG = {
     rice: {
         name: "Rice",
-        heading: "Irrigated Rice",
+        heading: "Rice",
         selectLand: (lands) => lands.find((land) => land.origin === "riverlands"),
-        isEligibleLand: isEligibleRiceRiverland,
+        isEligibleLand: isEligibleRiceLand,
         unavailableMessage: "No owned riverland is available.",
-        ineligibleMessage: "Rice requires cleared, irrigated riverland.",
-        assignedParcelLabel: null,
+        ineligibleMessage: "Rice requires cleared lowland.",
+        assignedParcelLabel: "Plains",
         showAffordabilityWarning: false,
-        maintenanceMessage: "Maintenance is optional. A fully developed crop gains maturity when this month ends.",
+        maintenanceMessage: "Maintenance is optional. Full maintenance adds two tokens to the base yield; the recorded irrigation bonus still applies.",
     },
     corn: {
         name: "Corn",

@@ -85,7 +85,7 @@ describe("irrigated rice store actions", () => {
   });
 
   it("rejects planting on ineligible or occupied land", () => {
-    const plains = createLand("plains");
+    const plains = createLand("foothills");
     useGameStore.setState({ lands: [plains] });
     expect(useGameStore.getState().startCropPlanting("rice", plains.id)).toBe(false);
 
@@ -254,8 +254,8 @@ describe("irrigated rice store actions", () => {
   it("preserves crop state when December loan processing blocks time", () => {
     const land = useGameStore.getState().lands[0];
     const crop = prepareCropDevelopment(
-      prepareCropDevelopment(createCrop("rice", land.id, 1, 12), "plowing")!.crop,
-      "planting",
+      prepareCropDevelopment(createCrop("rice", land.id, 1, 12), "plowing", land.isIrrigated)!.crop,
+      "planting", land.isIrrigated,
     )!.crop;
     const loan = createLoan(land, 1);
     useGameStore.setState({
@@ -289,4 +289,130 @@ describe("irrigated rice store actions", () => {
     expect(useGameStore.getState().startCropPlanting("rice", land.id)).toBe(true);
     expect(useGameStore.getState().cropPlantingHistory).toHaveLength(5);
   });
+
+  it.each([false, true])("harvests every maintenance level with irrigation=%s", (irrigated) => {
+    for (let maintenance = 0; maintenance <= 4; maintenance++) {
+      const land = createLand(irrigated ? "riverlands" : "plains");
+      useGameStore.setState({ lands: [land], crops: [], produceInventory: [], wallet: { gold: 100, silver: 0 } });
+      const id = prepareDevelopedCrop();
+      useGameStore.getState().advanceWorldTime();
+      for (let i = 0; i < maintenance; i++) {
+        expect(useGameStore.getState().fundCropMaintenance(id)).toBe(true);
+      }
+      useGameStore.getState().advanceWorldTime();
+      expect(useGameStore.getState().harvestCrop(id)).toBe(false);
+      fundProduction(id);
+      expect(useGameStore.getState().harvestCrop(id)).toBe(true);
+      const tokens = useGameStore.getState().produceInventory;
+      expect(tokens).toHaveLength((maintenance === 4 ? 4 : 2) + Number(irrigated));
+      expect(tokens.every((token) => token.crop === "rice")).toBe(true);
+      expect(new Set(tokens.map((token) => token.id)).size).toBe(tokens.length);
+    }
+  });
+
+  it.each(["plowing", "planting"] as const)("records irrigation at completion when %s is paid first", (first) => {
+    const land = createLand("plains");
+    const state = () => useGameStore.getState();
+    useGameStore.setState({ lands: [land], wallet: { gold: 100, silver: 0 } });
+    expect(state().startCropPlanting("rice", land.id)).toBe(true);
+    const id = state().crops[0].id;
+    expect(state().fundCropDevelopment(id, first)).toBe(true);
+    state().advanceWorldTime();
+    expect(state().crops[0]).toMatchObject({ irrigationBonus: null, maturity: { timeTokens: 0 } });
+    expect(state().irrigateOwnedLand(land.id)).toBe(true);
+    const last = first === "plowing" ? "planting" : "plowing";
+    expect(state().fundCropDevelopment(id, last)).toBe(true);
+    expect(state().crops[0]).toMatchObject({ irrigationBonus: true, maturity: { timeTokens: 0 } });
+    const before = state();
+    expect(state().fundCropDevelopment(id, last)).toBe(false);
+    expect(state()).toBe(before);
+  });
+
+  it("rechecks irrigation after an unaffordable completion and rejects a missing parcel", () => {
+    const land = createLand("plains");
+    const state = () => useGameStore.getState();
+    useGameStore.setState({ lands: [land], wallet: { gold: 3, silver: 0 } });
+    state().startCropPlanting("rice", land.id);
+    const id = state().crops[0].id;
+    state().fundCropDevelopment(id, "plowing");
+    const before = state();
+    expect(state().fundCropDevelopment(id, "planting")).toBe(false);
+    expect(state()).toBe(before);
+    expect(state().crops[0]).toMatchObject({ irrigationBonus: null });
+    useGameStore.setState({ wallet: { gold: 100, silver: 0 } });
+    expect(state().irrigateOwnedLand(land.id)).toBe(true);
+    const lands = state().lands;
+    useGameStore.setState({ lands: [] });
+    const missing = state();
+    expect(state().fundCropDevelopment(id, "planting")).toBe(false);
+    expect(state()).toBe(missing);
+    useGameStore.setState({ lands });
+    expect(state().fundCropDevelopment(id, "planting")).toBe(true);
+    expect(state().crops[0]).toMatchObject({ irrigationBonus: true });
+  });
+
+  it.each([0, 1, 2])("keeps irrigation added after %s growth advances for the next planting", (advances) => {
+    const land = createLand("plains");
+    const state = () => useGameStore.getState();
+    useGameStore.setState({ lands: [land], wallet: { gold: 100, silver: 0 } });
+    const id = prepareDevelopedCrop();
+    for (let i = 0; i < advances; i++) state().advanceWorldTime();
+    const before = state().crops;
+    expect(state().irrigateOwnedLand(land.id)).toBe(true);
+    expect(state().crops).toBe(before);
+    expect(state().crops[0]).toMatchObject({ irrigationBonus: false });
+    for (let i = advances; i < 2; i++) state().advanceWorldTime();
+    fundProduction(id);
+    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().produceInventory).toHaveLength(2);
+    expect(state().startCropPlanting("rice", land.id)).toBe(true);
+    const next = state().crops[0];
+    expect(next.id).not.toBe(id);
+    expect(next).toMatchObject({ irrigationBonus: null, maintenancePaid: 0, maturity: { timeTokens: 0 }, development: { plowing: false, planting: false } });
+    const wallet = state().wallet.gold;
+    state().fundCropDevelopment(next.id, "plowing");
+    state().fundCropDevelopment(next.id, "planting");
+    expect(state().wallet.gold).toBe(wallet - 3);
+    expect(state().crops[0]).toMatchObject({ irrigationBonus: true });
+  });
+
+  it("keeps staggered parcels independent after irrigation is removed in test state", () => {
+    const first = createLand("riverlands");
+    const second = createLand("plains");
+    const state = () => useGameStore.getState();
+    useGameStore.setState({ lands: [first, second], wallet: { gold: 100, silver: 0 } });
+    const firstId = prepareDevelopedCrop();
+    state().advanceWorldTime();
+    state().fundCropMaintenance(firstId);
+    state().startCropPlanting("rice", second.id);
+    const secondId = state().crops[1].id;
+    state().fundCropDevelopment(secondId, "plowing");
+    state().fundCropDevelopment(secondId, "planting");
+    state().advanceWorldTime();
+    fundProduction(firstId);
+    const crops = state().crops;
+    useGameStore.setState({ lands: state().lands.map((land) => land.category === "plains" ? { ...land, isIrrigated: false } : land) });
+    expect(state().crops).toBe(crops);
+    expect(state().crops[0]).toMatchObject({ irrigationBonus: true, maintenancePaid: 1, maturity: { timeTokens: 2 } });
+    expect(state().crops[1]).toMatchObject({ irrigationBonus: false, maturity: { timeTokens: 1 } });
+    expect(state().harvestCrop(firstId)).toBe(true);
+    expect(state().produceInventory).toHaveLength(3);
+    state().advanceWorldTime();
+    fundProduction(secondId);
+    expect(state().harvestCrop(secondId)).toBe(true);
+    expect(state().produceInventory).toHaveLength(5);
+  });
+
+  it("accepts cleared Forested Plains and rejects unknown parcel IDs without spending", () => {
+    const forest = createLand("forestedPlains");
+    const state = () => useGameStore.getState();
+    useGameStore.setState({ lands: [forest], wallet: { gold: 100, silver: 0 } });
+    const before = state();
+    expect(state().startCropPlanting("rice", "unowned")).toBe(false);
+    expect(state().startCropPlanting("rice", forest.id)).toBe(false);
+    expect(state()).toBe(before);
+    expect(state().clearOwnedLand(forest.id)).toBe(true);
+    expect(state().startCropPlanting("rice", forest.id)).toBe(true);
+  });
+
 });

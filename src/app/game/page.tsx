@@ -108,12 +108,12 @@ const GamePage = () => {
                         />
                     </div>
                 </div>
+                <DiceRoller />
             </div>
             <section className="m-4 space-y-4">
                 <LandComponent />
                 <CashCropComponent kind="rice" />
                 <CashCropComponent kind="corn" />
-                <DiceRoller />
             </section>
         </section>
     )

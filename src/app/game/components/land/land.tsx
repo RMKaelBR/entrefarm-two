@@ -47,6 +47,8 @@ export const LandComponent = () => {
                     return (
                         <article key={land.id} className="space-y-3 rounded border bg-white p-4">
                             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                                <dt>Land ID</dt>
+                                <dd>{land.id}</dd>
                                 <dt>Parcel</dt>
                                 <dd>
                                     <span aria-hidden="true">
