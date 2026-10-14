@@ -1,7 +1,7 @@
 "use client";
 
 import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
-import { CROP_CARDS } from "@/game-data/crop/crop-data";
+import { CASH_CROP_CARDS } from "@/game-data/crop/cash-crop-data";
 import {
     getCashCropStage,
     getCropYield,
@@ -36,7 +36,7 @@ const stageLabels = {
 export function CashCropComponent({ crop }: { crop: CashCrop }) {
     const config = CROP_UI_CONFIG[crop.kind];
     const definition = CROP_DEFINITIONS[crop.kind];
-    const card = CROP_CARDS[crop.kind];
+    const card = CASH_CROP_CARDS[crop.kind];
     const wallet = useGameStore((state) => state.wallet);
     const fundCropDevelopment = useGameStore((state) => state.fundCropDevelopment);
     const fundCropMaintenance = useGameStore((state) => state.fundCropMaintenance);

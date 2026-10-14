@@ -1,4 +1,4 @@
-import { CROP_CARDS } from "@/game-data/crop/crop-data";
+import { CASH_CROP_CARDS } from "@/game-data/crop/cash-crop-data";
 import type { CashCrop, CashCropKind, RiceProductionTask, CornProductionTask } from "@/game-data/crop/crop-types";
 
 type CropUiConfig = {
@@ -38,12 +38,12 @@ export function getProductionTaskViews(crop: CashCrop) {
         case "rice":
             return productionTasks.rice.map((task) => ({
                 task, label: productionLabels[task],
-                cost: CROP_CARDS.rice.productionCosts[task], paid: crop.production[task],
+                cost: CASH_CROP_CARDS.rice.productionCosts[task], paid: crop.production[task],
             }));
         case "corn":
             return productionTasks.corn.map((task) => ({
                 task, label: productionLabels[task],
-                cost: CROP_CARDS.corn.productionCosts[task], paid: crop.production[task],
+                cost: CASH_CROP_CARDS.corn.productionCosts[task], paid: crop.production[task],
             }));
         default: {
             const unhandled: never = crop;

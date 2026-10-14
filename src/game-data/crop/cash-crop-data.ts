@@ -65,7 +65,7 @@ type CropCards = {
   };
 };
 
-export const CROP_CARDS = {
+export const CASH_CROP_CARDS = {
   rice: RICE_CARD,
   corn: CORN_CARD,
 } satisfies CropCards;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clearLand, irrigateLand, createLand } from "../land/land-functions";
-import { RICE_CARD } from "./crop-data";
+import { RICE_CARD } from "./cash-crop-data";
 import {
   canPlantCropOnLand,
   isCropKind,

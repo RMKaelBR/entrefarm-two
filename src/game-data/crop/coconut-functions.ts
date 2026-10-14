@@ -88,9 +88,22 @@ export function prepareCoconutMaintenance(crop: CoconutCrop): Payment | null {
   if (life.stage !== "growing" || life.fmPaidMonth !== null) return null;
   return { cost: card.maintenanceCost, crop: { ...crop, lifecycle: { ...life, fmPaidMonth: life.cycleMonth } } };
 }
+export function prepareCoconutFullMaintenance(crop: CoconutCrop): Payment | null {
+  const life = crop.lifecycle;
+  if (life.phase !== "young") return null;
+  const remaining = card.maintenanceSlots - life.payments.length;
+  if (remaining <= 0) return null;
+  return {
+    cost: { gold: card.maintenanceCost.gold * remaining, silver: card.maintenanceCost.silver * remaining },
+    crop: { ...crop, lifecycle: { ...life, payments: [...life.payments,
+      ...Array.from({ length: remaining }, () => ({ cropMonth: life.cropMonth, pointHundredths: paymentPoints(life.cropMonth) }))] } },
+  };
+}
+
 export function prepareCoconutProduction(crop: CoconutCrop, task: unknown): Payment | null {
   const life = crop.lifecycle;
   if (life.phase !== "adult" || life.stage !== "ready" || !owns(card.productionCosts, task)
-    || life.production[task] || (task === "climbingPiling" && life.readyAge > 0)) return null;
+    || life.production[task] || (task === "climbingPiling" && life.readyAge > 0)
+    || (task === "hauling" && !life.production.husking)) return null;
   return { cost: card.productionCosts[task], crop: { ...crop, lifecycle: { ...life, production: { ...life.production, [task]: true } } } };
 }

@@ -35,6 +35,46 @@ beforeEach(() => useGameStore.setState({ year: 1, quarter: 1, month: 1, wallet: 
 afterEach(() => vi.restoreAllMocks());
 
 describe("coconut store lifecycle", () => {
+  it("funds all eight young maintenance slots atomically with exactly eight gold", () => {
+    const id = start(); develop(id);
+    useGameStore.setState({ wallet: { gold: 7, silver: 99 } });
+    rejected(() => state().fundAllCoconutMaintenance(id));
+    useGameStore.setState({ wallet: { gold: 8, silver: 9 } });
+    expect(state().fundAllCoconutMaintenance(id)).toBe(true);
+    expect(state().wallet).toEqual({ gold: 0, silver: 9 });
+    expect(tree().lifecycle).toMatchObject({ payments: Array.from({ length: 8 }, () => ({ cropMonth: 1, pointHundredths: 100 })) });
+    rejected(() => state().fundAllCoconutMaintenance(id));
+  });
+  it("fills only remaining slots using current-month points and preserves earlier payments", () => {
+    const id = start(); inject({ ...young(), cropMonth: 3, payments: [{ cropMonth: 1, pointHundredths: 100 }] });
+    useGameStore.setState({ wallet: { gold: 7, silver: 9 } });
+    expect(state().fundAllCoconutMaintenance(id)).toBe(true);
+    expect(state().wallet).toEqual({ gold: 0, silver: 9 });
+    expect(tree().lifecycle).toMatchObject({ payments: [{ cropMonth: 1, pointHundredths: 100 },
+      ...Array.from({ length: 7 }, () => ({ cropMonth: 3, pointHundredths: 90 }))] });
+  });
+  it("rejects bulk maintenance for missing crops, preparation, adult trees, and cash crops", () => {
+    rejected(() => state().fundAllCoconutMaintenance("missing"));
+    const id = start();
+    rejected(() => state().fundAllCoconutMaintenance(id));
+    inject(newAdultCycle());
+    rejected(() => state().fundAllCoconutMaintenance(id));
+    const rice = createCrop("rice", "p", 1, 1);
+    useGameStore.setState({ crops: [rice] });
+    rejected(() => state().fundAllCoconutMaintenance(rice.id));
+  });
+  it.each([0, 1, 2] as const)("requires husking before production hauling at fruit age %i", (age) => {
+    const id = start(); inject(ready(age));
+    const walletBefore = { ...state().wallet };
+    rejected(() => state().fundCropProduction(id, "hauling"));
+    expect(state().wallet).toEqual(walletBefore);
+    expect(tree().lifecycle).toMatchObject({ production: { husking: false, hauling: false } });
+    expect(state().fundCropProduction(id, "husking")).toBe(true);
+    expect(state().fundCropProduction(id, "hauling")).toBe(true);
+    expect(state().wallet).toEqual({ ...walletBefore, gold: walletBefore.gold - 3 });
+    expect(tree().lifecycle).toMatchObject({ production: { husking: true, hauling: true } });
+    rejected(() => state().fundCropProduction(id, "hauling"));
+  });
   it("accepts every owned land origin and rejects missing or occupied parcels", () => {
     rejected(() => state().startCropPlanting("coconut", "missing"));
     const lands = state().lands;

@@ -2,7 +2,7 @@ import { prepareCoconutDevelopment, prepareCoconutMaintenance, prepareCoconutPro
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
 import { CROP_DEFINITIONS, IMPLEMENTED_CROPS } from "./crop-definitions";
-import { CROP_CARDS } from "./crop-data";
+import { CASH_CROP_CARDS } from "./cash-crop-data";
 import type { Crop, CoconutCrop, CashCropKind, CashCrop, CashCropBase, CropKind, CropPlantingRecord, ProduceToken } from "./crop-types";
 
 export const hasWholeGold = (wallet: Currency, cost: Currency) =>
@@ -80,7 +80,7 @@ export function createCrop(kind: CropKind, landId: Land["id"], year: number, mon
     purchasing: { seedsPaid: true },
     development: { plowing: false, planting: false },
     maintenancePaid: 0,
-    maturity: { timeTokens: 0, timeTokensMax: CROP_CARDS[kind].growthAdvancesToHarvest },
+    maturity: { timeTokens: 0, timeTokensMax: CASH_CROP_CARDS[kind].growthAdvancesToHarvest },
   } satisfies CashCropBase;
   switch (kind) {
     case "rice": return { ...common, kind, irrigationBonus: null, production: { harvesting: false, hauling: false, drying: false } };
@@ -93,9 +93,9 @@ function hasOwnStringKey<T extends object>(object: T, key: unknown): key is Extr
   return typeof key === "string" && Object.prototype.hasOwnProperty.call(object, key);
 }
 
-export const isDevelopmentTask = (task: unknown) => hasOwnStringKey(CROP_CARDS.rice.developmentCosts, task);
-export const isRiceProductionTask = (task: unknown) => hasOwnStringKey(CROP_CARDS.rice.productionCosts, task);
-export const isCornProductionTask = (task: unknown) => hasOwnStringKey(CROP_CARDS.corn.productionCosts, task);
+export const isDevelopmentTask = (task: unknown) => hasOwnStringKey(CASH_CROP_CARDS.rice.developmentCosts, task);
+export const isRiceProductionTask = (task: unknown) => hasOwnStringKey(CASH_CROP_CARDS.rice.productionCosts, task);
+export const isCornProductionTask = (task: unknown) => hasOwnStringKey(CASH_CROP_CARDS.corn.productionCosts, task);
 
 type CropPayment = { crop: Crop; cost: Currency };
 
@@ -105,7 +105,7 @@ export function prepareCropDevelopment(
   parcelIsIrrigated: boolean | undefined,
 ): CropPayment | null {
   if (crop.kind === "coconut") return prepareCoconutDevelopment(crop, task);
-  const costs = CROP_CARDS[crop.kind].developmentCosts;
+  const costs = CASH_CROP_CARDS[crop.kind].developmentCosts;
   if (getCashCropStage(crop) !== "preparation" || !hasOwnStringKey(costs, task) || crop.development[task]) return null;
   const next: CashCrop = {
     ...crop,
@@ -121,7 +121,7 @@ export function prepareCropDevelopment(
 
 export function prepareCropMaintenance(crop: Crop): CropPayment | null {
   if (crop.kind === "coconut") return prepareCoconutMaintenance(crop);
-  const card = CROP_CARDS[crop.kind];
+  const card = CASH_CROP_CARDS[crop.kind];
   if (getCashCropStage(crop) !== "maintenance" || crop.maintenancePaid >= card.maintenanceSpaces) return null;
   return { cost: card.maintenanceSpaceCost, crop: { ...crop, maintenancePaid: crop.maintenancePaid + 1 } };
 }
@@ -131,12 +131,12 @@ export function prepareCropProduction(crop: Crop, task: unknown): CropPayment | 
   if (!isCashCropMature(crop)) return null;
   switch (crop.kind) {
     case "rice": {
-      const costs = CROP_CARDS.rice.productionCosts;
+      const costs = CASH_CROP_CARDS.rice.productionCosts;
       if (!hasOwnStringKey(costs, task) || crop.production[task]) return null;
       return { cost: costs[task], crop: { ...crop, production: { ...crop.production, [task]: true } } };
     }
     case "corn": {
-      const costs = CROP_CARDS.corn.productionCosts;
+      const costs = CASH_CROP_CARDS.corn.productionCosts;
       if (!hasOwnStringKey(costs, task) || crop.production[task]) return null;
       return { cost: costs[task], crop: { ...crop, production: { ...crop.production, [task]: true } } };
     }
@@ -146,7 +146,7 @@ export function prepareCropProduction(crop: Crop, task: unknown): CropPayment | 
 
 export const isCropProductionPaid = (crop: CashCrop) => Object.values(crop.production).every(Boolean);
 export const getCropYield = (crop: CashCrop) => {
-  const card = CROP_CARDS[crop.kind];
+  const card = CASH_CROP_CARDS[crop.kind];
   const baseYield = crop.maintenancePaid === card.maintenanceSpaces ? card.highYield : card.lowYield;
   const bonus = crop.kind === "rice" && crop.irrigationBonus === true ? 1 : 0;
   return baseYield + bonus;

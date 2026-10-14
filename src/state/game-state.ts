@@ -1,4 +1,4 @@
-import { canCollectCoconut, coconutYield, finishAdultCycle } from "@/game-data/crop/coconut-functions";
+import { canCollectCoconut, coconutYield, finishAdultCycle, prepareCoconutFullMaintenance } from "@/game-data/crop/coconut-functions";
 import { create } from 'zustand';
 import {
     childNeedsQuarterlyTuitionDecision,
@@ -304,6 +304,23 @@ export const useGameStore = create<GameState>((set, get) => ({
             const crop = state.crops.find((item) => item.id === cropId);
             if (!crop) return state;
             const payment = prepareCropMaintenance(crop);
+            if (!payment || !hasWholeGold(state.wallet, payment.cost)) return state;
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, payment.cost),
+                crops: state.crops.map((item) => item.id === cropId ? payment.crop : item),
+            };
+        });
+        return committed;
+    },
+
+    fundAllCoconutMaintenance: (cropId) => {
+        let committed = false;
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+            if (!crop || crop.kind !== "coconut") return state;
+            const payment = prepareCoconutFullMaintenance(crop);
             if (!payment || !hasWholeGold(state.wallet, payment.cost)) return state;
             committed = true;
             return {

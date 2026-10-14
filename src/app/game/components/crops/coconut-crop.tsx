@@ -2,7 +2,7 @@
 
 import { COCONUT_CARD as card } from "@/game-data/crop/coconut-data";
 import { adultHighChance, adultProgress, bonusChance, canCollectCoconut, coconutYield, paymentPoints,
-    periodMonth, pointTotal, youngProgress } from "@/game-data/crop/coconut-functions";
+    periodMonth, pointTotal, prepareCoconutFullMaintenance, youngProgress } from "@/game-data/crop/coconut-functions";
 import { hasWholeGold } from "@/game-data/crop/crop-functions";
 import type { CoconutCrop } from "@/game-data/crop/crop-types";
 import { useGameStore } from "@/state/game-state";
@@ -18,6 +18,8 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
     const maintain = useGameStore((s) => s.fundCropMaintenance);
     const produce = useGameStore((s) => s.fundCropProduction);
     const collect = useGameStore((s) => s.harvestCrop);
+    const fundAllMaintenance = useGameStore((s) => s.fundAllCoconutMaintenance);
+    const fullMaintenance = prepareCoconutFullMaintenance(crop);
     const life = crop.lifecycle;
     const affordable = hasWholeGold(wallet, card.maintenanceCost);
     return <section className="space-y-3 border bg-white p-4">
@@ -41,6 +43,10 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
             <p>Regular growth arrives every third crop month. The bonus resolves after period month 6 ends, then slots reset.</p>
             <Button label={`Fund young F&M (${card.maintenanceCost.gold} Gold)`}
                 disabled={!affordable || life.payments.length >= card.maintenanceSlots} onClick={() => maintain(crop.id)} />
+            <Button label={`Fund All for F&M (${fullMaintenance?.cost.gold ?? 0} Gold)`}
+                className="ml-2"
+                disabled={!fullMaintenance || !hasWholeGold(wallet, fullMaintenance.cost)}
+                onClick={() => fundAllMaintenance(crop.id)} />
         </>}
         {life.phase === "adult" && <>
             <p>Adult · {life.stage === "resting" ? "Between cycles" : `Cycle month ${life.cycleMonth}`} · Growth: {adultProgress(life)} / {card.adultTokens}</p>
@@ -58,10 +64,12 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
                 {productionTasks.map((task) => {
                     const waived = task === "climbingPiling" && life.readyAge > 0;
                     const paid = life.production[task];
+                    const requiresHusking = task === "hauling" && !life.production.husking;
                     const cost = card.productionCosts[task];
                     return <div key={task}>
                         <p>{labels[task]}: {waived ? (paid ? "Waived; prior payment is not refunded" : "Waived for fallen fruit") : paid ? "Paid" : "Unpaid — required"}</p>
-                        <Button label={`Fund ${labels[task]} (${cost.gold} Gold)`} disabled={waived || paid || !hasWholeGold(wallet, cost)} onClick={() => produce(crop.id, task)} />
+                        {requiresHusking && <p>Requires husking first.</p>}
+                        <Button label={`Fund ${labels[task]} (${cost.gold} Gold)`} disabled={waived || paid || requiresHusking || !hasWholeGold(wallet, cost)} onClick={() => produce(crop.id, task)} />
                     </div>;
                 })}
                 <Button label={`Collect Coconut (${coconutYield(life)} tokens)`} disabled={!canCollectCoconut(life)} onClick={() => collect(crop.id)} />
