@@ -1,7 +1,8 @@
+import { COCONUT_CARD } from "./coconut-data";
 import type { CropKind } from "./crop-types";
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
-import { CROP_CARDS } from "./crop-data";
+import { CASH_CROP_CARDS } from "./cash-crop-data";
 
 type CropDefinition<K extends CropKind> = {
     kind: K;
@@ -12,9 +13,14 @@ type CropDefinition<K extends CropKind> = {
 };
 
 export const CROP_DEFINITIONS = {
+    coconut: {
+        kind: "coconut", name: "Coconut", purchaseLabel: "Seedling",
+        purchaseCost: COCONUT_CARD.seedlingCost,
+        getPlacementBlockReason: () => null,
+    },
     rice: {
         kind: "rice", name: "Rice", purchaseLabel: "Seeds",
-        purchaseCost: CROP_CARDS.rice.seedCost,
+        purchaseCost: CASH_CROP_CARDS.rice.seedCost,
         getPlacementBlockReason: (land: Land) => !land.isCleared
             ? "Clearing is required before planting rice."
             : land.category !== "plains"
@@ -23,7 +29,7 @@ export const CROP_DEFINITIONS = {
     },
     corn: {
         kind: "corn", name: "Corn", purchaseLabel: "Seeds",
-        purchaseCost: CROP_CARDS.corn.seedCost,
+        purchaseCost: CASH_CROP_CARDS.corn.seedCost,
         getPlacementBlockReason: (land: Land) => !land.isCleared
             ? "Clearing is required before planting corn."
             : null,

@@ -190,9 +190,15 @@ describe("corn harvest and independent time", () => {
     expect(state()).toMatchObject({ month: 1, year: 2 });
     develop(id);
     state().advanceWorldTime();
-    expect(state().crops.map(getCashCropStage)).toEqual(["harvest", "maintenance"]);
+    expect(state().crops.map((crop) => {
+      if (crop.kind === "coconut") throw new Error("Expected cash crop");
+      return getCashCropStage(crop);
+    })).toEqual(["harvest", "maintenance"]);
     state().advanceWorldTime();
-    expect(state().crops.map(getCashCropStage)).toEqual(["harvest", "harvest"]);
+    expect(state().crops.map((crop) => {
+      if (crop.kind === "coconut") throw new Error("Expected cash crop");
+      return getCashCropStage(crop);
+    })).toEqual(["harvest", "harvest"]);
     const matureRice = state().crops[0];
     produce(id);
     state().harvestCrop(id);

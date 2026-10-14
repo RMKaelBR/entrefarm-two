@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clearLand, irrigateLand, createLand } from "../land/land-functions";
-import { RICE_CARD } from "./crop-data";
+import { RICE_CARD } from "./cash-crop-data";
 import {
   canPlantCropOnLand,
   isCropKind,
@@ -22,7 +22,12 @@ import {
   prepareCropProduction,
   tickCashCropMaturity,
 } from "./crop-functions";
-import type { CropPlantingRecord } from "./crop-types";
+import type { CropPlantingRecord, Crop } from "./crop-types";
+
+function cash(crop: Crop) {
+  if (crop.kind === "coconut") throw new Error("Expected cash crop");
+  return crop;
+}
 
 describe("irrigated rice rules", () => {
   it("accepts cleared lowland and rejects uncleared forest and upland", () => {
@@ -44,8 +49,8 @@ describe("irrigated rice rules", () => {
     const developed = prepareCropDevelopment(plowed, "planting", true)!.crop;
 
     expect(crop.development.plowing).toBe(false);
-    expect(isCashCropDeveloped(plowed)).toBe(false);
-    expect(isCashCropDeveloped(developed)).toBe(true);
+    expect(isCashCropDeveloped(cash(plowed))).toBe(false);
+    expect(isCashCropDeveloped(cash(developed))).toBe(true);
     expect(prepareCropDevelopment(developed, "planting", true)).toBeNull();
   });
 
@@ -56,10 +61,10 @@ describe("irrigated rice rules", () => {
     const developed = prepareCropDevelopment(
       prepareCropDevelopment(incomplete[0], "plowing", true)!.crop, "planting", true,
     )!.crop;
-    expect(getCashCropStage(developed)).toBe("planting");
-    const maintenance = tickCashCropMaturity([developed]);
+    expect(getCashCropStage(cash(developed))).toBe("planting");
+    const maintenance = tickCashCropMaturity([cash(developed)]);
     expect(getCashCropStage(maintenance[0])).toBe("maintenance");
-    expect(developed.maturity.timeTokens).toBe(0);
+    expect(cash(developed).maturity.timeTokens).toBe(0);
     const mature = tickCashCropMaturity(maintenance);
     expect(getCashCropStage(mature[0])).toBe("harvest");
     expect(tickCashCropMaturity(mature)).toBe(mature);
@@ -75,8 +80,8 @@ describe("irrigated rice rules", () => {
     const four = prepareCropMaintenance(three)!.crop;
 
     expect(getCropYield(crop)).toBe(2);
-    expect(getCropYield(three)).toBe(3);
-    expect(getCropYield(four)).toBe(5);
+    expect(getCropYield(cash(three))).toBe(3);
+    expect(getCropYield(cash(four))).toBe(5);
     expect(prepareCropMaintenance(four)).toBeNull();
   });
 
@@ -88,8 +93,8 @@ describe("irrigated rice rules", () => {
     const hauling = prepareCropProduction(harvesting, "hauling")!.crop;
     const drying = prepareCropProduction(hauling, "drying")!.crop;
 
-    expect(isCropProductionPaid(hauling)).toBe(false);
-    expect(isCropProductionPaid(drying)).toBe(true);
+    expect(isCropProductionPaid(cash(hauling))).toBe(false);
+    expect(isCropProductionPaid(cash(drying))).toBe(true);
     expect(prepareCropProduction(drying, "drying")).toBeNull();
   });
 
@@ -174,7 +179,7 @@ describe("rice lowland and snapshot boundaries", () => {
         expect(first).toMatchObject({ irrigationBonus: null, development: { planting: false } });
       } else {
         expect(result?.crop).not.toHaveProperty("irrigationBonus");
-        expect(result?.crop.development.planting).toBe(true);
+        expect(result && cash(result.crop).development.planting).toBe(true);
       }
     }
   });
@@ -183,7 +188,7 @@ describe("rice lowland and snapshot boundaries", () => {
 
 describe("registered placement rules", () => {
   it("recognizes only implemented crop kinds", () => {
-    for (const kind of ["rice", "corn"]) expect(isCropKind(kind)).toBe(true);
+    for (const kind of ["rice", "corn", "coconut"]) expect(isCropKind(kind)).toBe(true);
     for (const value of ["toString", "__proto__", "unknown", "", null, undefined, {}]) {
       expect(isCropKind(value)).toBe(false);
     }

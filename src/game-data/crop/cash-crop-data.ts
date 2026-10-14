@@ -1,10 +1,9 @@
 import type { Currency } from "../types";
 import type {
   CashCrop,
-  CropKind,
-  CornDevelopmentTask,
+  CashCropKind,
   CornProductionTask,
-  RiceDevelopmentTask,
+  CashCropDevelopmentTask,
   RiceProductionTask,
 } from "./crop-types";
 
@@ -15,7 +14,7 @@ export const RICE_CARD = {
   developmentCosts: {
     plowing: gold(2),
     planting: gold(1),
-  } satisfies Record<RiceDevelopmentTask, Currency>,
+  } satisfies Record<CashCropDevelopmentTask, Currency>,
   maintenanceSpaceCost: gold(1),
   maintenanceSpaces: 4,
   // Legacy gameplay-step count, not printed card spaces.
@@ -36,7 +35,7 @@ export const CORN_CARD = {
   developmentCosts: {
     plowing: gold(2),
     planting: gold(1),
-  } satisfies Record<CornDevelopmentTask, Currency>,
+  } satisfies Record<CashCropDevelopmentTask, Currency>,
   maintenanceSpaceCost: gold(1),
   maintenanceSpaces: 4,
   sourceMaturitySpaces: 1,
@@ -51,9 +50,9 @@ export const CORN_CARD = {
   lowYield: 4,
 } as const;
 
-type CropOf<K extends CropKind> = Extract<CashCrop, { kind: K }>;
+type CropOf<K extends CashCropKind> = Extract<CashCrop, { kind: K }>;
 type CropCards = {
-  [K in CropKind]: {
+  [K in CashCropKind]: {
     seedCost: Currency;
     developmentCosts: Record<keyof CropOf<K>["development"], Currency>;
     productionCosts: Record<keyof CropOf<K>["production"], Currency>;
@@ -66,7 +65,7 @@ type CropCards = {
   };
 };
 
-export const CROP_CARDS = {
+export const CASH_CROP_CARDS = {
   rice: RICE_CARD,
   corn: CORN_CARD,
 } satisfies CropCards;
