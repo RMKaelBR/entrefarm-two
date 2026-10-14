@@ -11,7 +11,7 @@ import {
     isCropProductionPaid,
 } from "@/game-data/crop/crop-functions";
 import type {
-    CropDevelopmentTask,
+    CashCropDevelopmentTask,
     CashCrop,
 } from "@/game-data/crop/crop-types";
 import { useGameStore } from "@/state/game-state";
@@ -19,7 +19,7 @@ import { Button } from "../button";
 import { CROP_UI_CONFIG, getProductionTaskViews } from "./crop-ui-config";
 
 const developmentTasks: Array<{
-    task: CropDevelopmentTask;
+    task: CashCropDevelopmentTask;
     label: string;
 }> = [
     { task: "plowing", label: "Plowing" },

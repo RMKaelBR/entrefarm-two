@@ -1,0 +1,72 @@
+"use client";
+
+import { COCONUT_CARD as card } from "@/game-data/crop/coconut-data";
+import { adultHighChance, adultProgress, bonusChance, canCollectCoconut, coconutYield, paymentPoints,
+    periodMonth, pointTotal, youngProgress } from "@/game-data/crop/coconut-functions";
+import { hasWholeGold } from "@/game-data/crop/crop-functions";
+import type { CoconutCrop } from "@/game-data/crop/crop-types";
+import { useGameStore } from "@/state/game-state";
+import { Button } from "../button";
+
+const developmentTasks = ["clearing", "hauling", "planting"] as const;
+const productionTasks = ["climbingPiling", "husking", "hauling"] as const;
+const labels = { clearing: "Clearing", planting: "Planting", hauling: "Hauling", climbingPiling: "Climbing/piling", husking: "Husking" };
+
+export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
+    const wallet = useGameStore((s) => s.wallet);
+    const develop = useGameStore((s) => s.fundCropDevelopment);
+    const maintain = useGameStore((s) => s.fundCropMaintenance);
+    const produce = useGameStore((s) => s.fundCropProduction);
+    const collect = useGameStore((s) => s.harvestCrop);
+    const life = crop.lifecycle;
+    const affordable = hasWholeGold(wallet, card.maintenanceCost);
+    return <section className="space-y-3 border bg-white p-4">
+        <h3 className="font-semibold">Active Coconut Crop</h3>
+        {!affordable && <p className="text-sm text-amber-700">Not enough whole gold for unpaid expenses.</p>}
+        {life.phase === "preparation" && <>
+            <p>Preparation · Seedling paid</p>
+            <p>Complete all three expenses to begin young month 1. Crop clearing does not clear the parcel.</p>
+            {developmentTasks.map((task) => <div key={task}>
+                <p>{task === "hauling" ? "Seedling hauling" : labels[task]}: {life.development[task] ? "Paid" : "Unpaid"}</p>
+                <Button label={`Fund ${task === "hauling" ? "Seedling hauling" : labels[task]} (${card.developmentCosts[task].gold} Gold)`}
+                    disabled={life.development[task] || !hasWholeGold(wallet, card.developmentCosts[task])}
+                    onClick={() => develop(crop.id, task)} />
+            </div>)}
+        </>}
+        {life.phase === "young" && <>
+            <p>Young · Crop month {life.cropMonth} · Period month {periodMonth(life.cropMonth)} / {card.periodMonths}</p>
+            <p>Growth: {youngProgress(life)} / {card.youngTokens} ({life.regularTokens} regular + {life.bonusTokens} bonus)</p>
+            <p>F&amp;M slots: {life.payments.length} / {card.maintenanceSlots} · Points: {pointTotal(life) / 100} · Bonus chance: {Number((bonusChance(life) * 100).toFixed(2))}%</p>
+            <p>Each payment now adds {paymentPoints(life.cropMonth) / 100} points. Earlier payments keep their value.</p>
+            <p>Regular growth arrives every third crop month. The bonus resolves after period month 6 ends, then slots reset.</p>
+            <Button label={`Fund young F&M (${card.maintenanceCost.gold} Gold)`}
+                disabled={!affordable || life.payments.length >= card.maintenanceSlots} onClick={() => maintain(crop.id)} />
+        </>}
+        {life.phase === "adult" && <>
+            <p>Adult · {life.stage === "resting" ? "Between cycles" : `Cycle month ${life.cycleMonth}`} · Growth: {adultProgress(life)} / {card.adultTokens}</p>
+            {life.lastHarvest && <p role="status">Last harvest: {life.lastHarvest.outcome} · {life.lastHarvest.quantity} produce tokens.</p>}
+            {life.stage !== "resting" && <p>Current F&amp;M: {life.fmPaidMonth ? `Paid in month ${life.fmPaidMonth}` : "Unfunded"}</p>}
+            {life.stage === "resting" ? <>
+                <p>This harvest cycle has ended. The next successful monthly advance starts month 1 of the next cycle.</p>
+            </> : life.stage === "growing" ? <>
+                <p>High-yield chance: {adultHighChance(life) * 100}%. Month 1 funding guarantees high yield; month 2 funding gives 75%. Ready in month {card.readyMonth}.</p>
+                <Button label={`Fund adult F&M (${card.maintenanceCost.gold} Gold)`} disabled={!affordable || life.fmPaidMonth !== null} onClick={() => maintain(crop.id)} />
+            </> : <>
+                <p>{life.readyAge === 0 ? "Harvest-ready" : "Fallen fruit"} · Stored result: {life.yieldResult} · Available yield: {coconutYield(life)} tokens</p>
+                <p>{3 - life.readyAge} successful monthly advances before loss. Fruit falls on the first advance after readiness, reducing yield.</p>
+                {life.fromOverflow && <p>Early fruit from surplus young growth has fixed low yield. F&amp;M cannot improve this harvest.</p>}
+                {productionTasks.map((task) => {
+                    const waived = task === "climbingPiling" && life.readyAge > 0;
+                    const paid = life.production[task];
+                    const cost = card.productionCosts[task];
+                    return <div key={task}>
+                        <p>{labels[task]}: {waived ? (paid ? "Waived; prior payment is not refunded" : "Waived for fallen fruit") : paid ? "Paid" : "Unpaid — required"}</p>
+                        <Button label={`Fund ${labels[task]} (${cost.gold} Gold)`} disabled={waived || paid || !hasWholeGold(wallet, cost)} onClick={() => produce(crop.id, task)} />
+                    </div>;
+                })}
+                <Button label={`Collect Coconut (${coconutYield(life)} tokens)`} disabled={!canCollectCoconut(life)} onClick={() => collect(crop.id)} />
+                <p>Collection or loss retains the trees. Month 1 of the next cycle starts on the following successful monthly advance. Production expenses reset without refunds.</p>
+            </>}
+        </>}
+    </section>;
+}

@@ -1,5 +1,5 @@
 import type {
-  CashCrop, CropKind, CropDevelopmentTask, CropProductionTask,
+  Crop, CropKind, CropDevelopmentTask, CropProductionTask,
   CropPlantingRecord, ProduceToken,
 } from "./crop/crop-types";
 import type { Land } from "./land/land-types";
@@ -14,7 +14,7 @@ export type GameState = {
     lands: Land[];
     loans: Loan[];
     children: Child[];
-    crops: CashCrop[];
+    crops: Crop[];
     cropPlantingHistory: CropPlantingRecord[];
     produceInventory: ProduceToken[];
     hasActiveGame: boolean;
@@ -37,10 +37,10 @@ export type GameState = {
     clearOwnedLand: (landId: Land["id"]) => boolean;
     irrigateOwnedLand: (landId: Land["id"]) => boolean;
     startCropPlanting: (kind: CropKind, landId: Land["id"]) => boolean;
-    fundCropDevelopment: (cropId: CashCrop["id"], task: CropDevelopmentTask) => boolean;
-    fundCropMaintenance: (cropId: CashCrop["id"]) => boolean;
-    fundCropProduction: (cropId: CashCrop["id"], task: CropProductionTask) => boolean;
-    harvestCrop: (cropId: CashCrop["id"]) => boolean;
+    fundCropDevelopment: (cropId: Crop["id"], task: CropDevelopmentTask) => boolean;
+    fundCropMaintenance: (cropId: Crop["id"]) => boolean;
+    fundCropProduction: (cropId: Crop["id"], task: CropProductionTask) => boolean;
+    harvestCrop: (cropId: Crop["id"]) => boolean;
     resetAll: () => void;
 };
 

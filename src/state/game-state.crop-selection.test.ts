@@ -9,7 +9,7 @@ import { useGameStore } from "./game-state";
 const state = () => useGameStore.getState();
 const cropById = (id: string) => {
   const crop = state().crops.find((item) => item.id === id);
-  if (!crop) throw new Error("Missing crop fixture");
+  if (!crop || crop.kind === "coconut") throw new Error("Missing cash crop fixture");
   return crop;
 };
 function startOn(kind: CropKind, landId: string) {

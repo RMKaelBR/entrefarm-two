@@ -1,3 +1,4 @@
+import type { Crop } from "@/game-data/crop/crop-types";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createCrop, prepareCropDevelopment } from "@/game-data/crop/crop-functions";
 import type { CropPlantingRecord } from "@/game-data/crop/crop-types";
@@ -126,7 +127,7 @@ describe("irrigated rice store actions", () => {
 
     useGameStore.setState({ month: 2 });
     useGameStore.getState().advanceWorldTime();
-    expect(useGameStore.getState().crops[0].maturity.timeTokens).toBe(0);
+    expect(cashCrop(useGameStore.getState().crops[0]).maturity.timeTokens).toBe(0);
     expect(useGameStore.getState().fundCropProduction(cropId, "harvesting")).toBe(false);
     expect(useGameStore.getState().harvestCrop(cropId)).toBe(false);
   });
@@ -185,7 +186,7 @@ describe("irrigated rice store actions", () => {
     useGameStore.getState().fundCropDevelopment(firstId, "plowing");
     useGameStore.getState().advanceWorldTime();
     useGameStore.getState().advanceWorldTime();
-    expect(useGameStore.getState().crops[0].maturity.timeTokens).toBe(0);
+    expect(cashCrop(useGameStore.getState().crops[0]).maturity.timeTokens).toBe(0);
     expect(useGameStore.getState().fundCropMaintenance(firstId)).toBe(false);
     useGameStore.getState().fundCropDevelopment(firstId, "planting");
     useGameStore.getState().advanceWorldTime();
@@ -193,9 +194,9 @@ describe("irrigated rice store actions", () => {
     const secondId = useGameStore.getState().crops[1].id;
     useGameStore.getState().fundCropDevelopment(secondId, "planting");
     useGameStore.getState().fundCropDevelopment(secondId, "plowing");
-    expect(useGameStore.getState().crops.map(crop => crop.maturity.timeTokens)).toEqual([1, 0]);
+    expect(useGameStore.getState().crops.map(crop => cashCrop(crop).maturity.timeTokens)).toEqual([1, 0]);
     useGameStore.getState().advanceWorldTime();
-    expect(useGameStore.getState().crops.map(crop => crop.maturity.timeTokens)).toEqual([2, 1]);
+    expect(useGameStore.getState().crops.map(crop => cashCrop(crop).maturity.timeTokens)).toEqual([2, 1]);
     expect(useGameStore.getState().fundCropMaintenance(firstId)).toBe(false);
     expect(useGameStore.getState().fundCropMaintenance(secondId)).toBe(true);
     expect(useGameStore.getState().fundCropProduction(secondId, "harvesting")).toBe(false);
@@ -416,3 +417,8 @@ describe("irrigated rice store actions", () => {
   });
 
 });
+
+function cashCrop(crop: Crop) {
+  if (crop.kind === "coconut") throw new Error("Expected cash crop");
+  return crop;
+}

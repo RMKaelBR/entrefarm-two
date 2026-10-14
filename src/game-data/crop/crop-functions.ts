@@ -1,8 +1,9 @@
+import { prepareCoconutDevelopment, prepareCoconutMaintenance, prepareCoconutProduction, tickCoconut, type RandomSource } from "./coconut-functions";
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
 import { CROP_DEFINITIONS, IMPLEMENTED_CROPS } from "./crop-definitions";
 import { CROP_CARDS } from "./crop-data";
-import type { CashCrop, CashCropBase, CropKind, CropPlantingRecord, ProduceToken } from "./crop-types";
+import type { Crop, CoconutCrop, CashCropKind, CashCrop, CashCropBase, CropKind, CropPlantingRecord, ProduceToken } from "./crop-types";
 
 export const hasWholeGold = (wallet: Currency, cost: Currency) =>
   cost.silver === 0 && wallet.gold >= cost.gold;
@@ -65,7 +66,15 @@ export const isEligibleCornLand = (land: Land) =>
 export const canPlantCropOnLand = (kind: CropKind, land: Land) =>
   getCropPlacementBlockReason(kind, land) === null;
 
-export function createCrop(kind: CropKind, landId: Land["id"], year: number, month: number): CashCrop {
+export function createCrop(kind: "coconut", landId: Land["id"], year: number, month: number): CoconutCrop;
+export function createCrop(kind: CashCropKind, landId: Land["id"], year: number, month: number): CashCrop;
+export function createCrop(kind: CropKind, landId: Land["id"], year: number, month: number): Crop;
+export function createCrop(kind: CropKind, landId: Land["id"], year: number, month: number): Crop {
+  if (kind === "coconut") return {
+    kind, id: crypto.randomUUID(), landId, startedYear: year, startedMonth: month,
+    purchasing: { seedlingPaid: true },
+    lifecycle: { phase: "preparation", development: { clearing: false, hauling: false, planting: false } },
+  };
   const common = {
     id: crypto.randomUUID(), landId, startedYear: year, startedMonth: month,
     purchasing: { seedsPaid: true },
@@ -88,13 +97,14 @@ export const isDevelopmentTask = (task: unknown) => hasOwnStringKey(CROP_CARDS.r
 export const isRiceProductionTask = (task: unknown) => hasOwnStringKey(CROP_CARDS.rice.productionCosts, task);
 export const isCornProductionTask = (task: unknown) => hasOwnStringKey(CROP_CARDS.corn.productionCosts, task);
 
-type CropPayment = { crop: CashCrop; cost: Currency };
+type CropPayment = { crop: Crop; cost: Currency };
 
 export function prepareCropDevelopment(
-  crop: CashCrop,
+  crop: Crop,
   task: unknown,
   parcelIsIrrigated: boolean | undefined,
 ): CropPayment | null {
+  if (crop.kind === "coconut") return prepareCoconutDevelopment(crop, task);
   const costs = CROP_CARDS[crop.kind].developmentCosts;
   if (getCashCropStage(crop) !== "preparation" || !hasOwnStringKey(costs, task) || crop.development[task]) return null;
   const next: CashCrop = {
@@ -109,13 +119,15 @@ export function prepareCropDevelopment(
   return { cost: costs[task], crop: next };
 }
 
-export function prepareCropMaintenance(crop: CashCrop): CropPayment | null {
+export function prepareCropMaintenance(crop: Crop): CropPayment | null {
+  if (crop.kind === "coconut") return prepareCoconutMaintenance(crop);
   const card = CROP_CARDS[crop.kind];
   if (getCashCropStage(crop) !== "maintenance" || crop.maintenancePaid >= card.maintenanceSpaces) return null;
   return { cost: card.maintenanceSpaceCost, crop: { ...crop, maintenancePaid: crop.maintenancePaid + 1 } };
 }
 
-export function prepareCropProduction(crop: CashCrop, task: unknown): CropPayment | null {
+export function prepareCropProduction(crop: Crop, task: unknown): CropPayment | null {
+  if (crop.kind === "coconut") return prepareCoconutProduction(crop, task);
   if (!isCashCropMature(crop)) return null;
   switch (crop.kind) {
     case "rice": {
@@ -143,3 +155,8 @@ export const createCropProduce = (kind: CropKind, quantity: number): ProduceToke
   Array.from({ length: quantity }, () => ({ id: crypto.randomUUID(), crop: kind }));
 export const countRicePlantingsForYear = (history: CropPlantingRecord[], year: number) =>
   history.filter((item) => item.kind === "rice" && item.year === year).length;
+
+export function tickCrops(crops: Crop[], random: RandomSource = Math.random): Crop[] {
+  return crops.map((crop) => crop.kind === "coconut"
+    ? tickCoconut(crop, random) : tickCashCropMaturity([crop])[0]);
+}

@@ -1,3 +1,4 @@
+import { COCONUT_CARD } from "./coconut-data";
 import type { CropKind } from "./crop-types";
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
@@ -12,6 +13,11 @@ type CropDefinition<K extends CropKind> = {
 };
 
 export const CROP_DEFINITIONS = {
+    coconut: {
+        kind: "coconut", name: "Coconut", purchaseLabel: "Seedling",
+        purchaseCost: COCONUT_CARD.seedlingCost,
+        getPlacementBlockReason: () => null,
+    },
     rice: {
         kind: "rice", name: "Rice", purchaseLabel: "Seeds",
         purchaseCost: CROP_CARDS.rice.seedCost,
