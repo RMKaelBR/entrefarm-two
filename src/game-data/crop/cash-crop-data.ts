@@ -1,4 +1,5 @@
 import type { Currency } from "../types";
+import { gold } from "../money/calculate-money";
 import type {
   CashCrop,
   CashCropKind,
@@ -6,8 +7,6 @@ import type {
   CashCropDevelopmentTask,
   RiceProductionTask,
 } from "./crop-types";
-
-const gold = (amount: number): Currency => ({ gold: amount, silver: 0 });
 
 export const RICE_CARD = {
   seedCost: gold(1),

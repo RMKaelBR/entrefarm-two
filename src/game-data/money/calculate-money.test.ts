@@ -2,11 +2,25 @@ import { describe, expect, it } from "vitest";
 import {
   canAffordCurrency,
   currencyToSilver,
+  gold,
   multiplyCurrencyRatio,
+  silver,
   silverToCurrency,
 } from "./calculate-money";
 
 describe("exact currency helpers", () => {
+  it("constructs whole gold amounts", () => {
+    expect(gold(2)).toEqual({ gold: 2, silver: 0 });
+    expect(gold(0)).toEqual({ gold: 0, silver: 0 });
+  });
+
+  it("constructs and normalizes whole silver amounts", () => {
+    expect(silver(5)).toEqual({ gold: 0, silver: 5 });
+    expect(silver(12)).toEqual({ gold: 1, silver: 2 });
+    expect(silver(10)).toEqual({ gold: 1, silver: 0 });
+    expect(silver(0)).toEqual({ gold: 0, silver: 0 });
+  });
+
   it("converts between currency and silver", () => {
     expect(currencyToSilver({ gold: 4, silver: 7 })).toBe(47);
     expect(silverToCurrency(47)).toEqual({ gold: 4, silver: 7 });
