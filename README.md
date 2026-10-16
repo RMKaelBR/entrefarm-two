@@ -37,3 +37,12 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 # entrefarm-one
 A browser-based entrepreneurship farming game.
+
+## Currency constants
+
+Use `gold(n)` and `silver(n)` from `src/game-data/money/calculate-money.ts`
+for new single-denomination currency constants with whole, non-negative amounts.
+Both return `Currency` values: `gold(2)` is `{ gold: 2, silver: 0 }`, and
+`silver(12)` is `{ gold: 1, silver: 2 }` at the existing 10-silver-to-1-gold rate.
+Both helpers return `{ gold: 0, silver: 0 }` for zero. Mixed amounts may still
+use explicit `Currency` objects, such as `{ gold: 2, silver: 5 }`.

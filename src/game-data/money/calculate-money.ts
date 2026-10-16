@@ -34,6 +34,12 @@ export const silverToCurrency = (silver: number): Currency => ({
   silver: silver % 10,
 });
 
+/** Standard constructor for whole, non-negative gold amounts. */
+export const gold = (amount: number): Currency => ({ gold: amount, silver: 0 });
+
+/** Standard constructor for whole, non-negative silver amounts; carries into gold. */
+export const silver = (amount: number): Currency => silverToCurrency(amount);
+
 export const canAffordCurrency = (funds: Currency, cost: Currency): boolean =>
   currencyToSilver(funds) >= currencyToSilver(cost);
 

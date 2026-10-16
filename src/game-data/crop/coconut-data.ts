@@ -1,7 +1,7 @@
 import type { Currency } from "../types";
+import { gold } from "../money/calculate-money";
 import type { CoconutDevelopmentTask, CoconutProductionTask } from "./crop-types";
 
-const gold = (amount: number): Currency => ({ gold: amount, silver: 0 });
 export const COCONUT_CARD = {
   seedlingCost: gold(1),
   developmentCosts: { clearing: gold(1), hauling: gold(1), planting: gold(1) } satisfies Record<CoconutDevelopmentTask, Currency>,
