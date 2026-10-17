@@ -38,6 +38,7 @@ export type GameState = {
     irrigateOwnedLand: (landId: Land["id"]) => boolean;
     startCropPlanting: (kind: CropKind, landId: Land["id"]) => boolean;
     fundCropDevelopment: (cropId: Crop["id"], task: CropDevelopmentTask) => boolean;
+    fundAllFruitMaintenance: (cropId: Crop["id"]) => boolean;
     fundAllCoconutMaintenance: (cropId: Crop["id"]) => boolean;
     fundCropMaintenance: (cropId: Crop["id"]) => boolean;
     fundCropProduction: (cropId: Crop["id"], task: CropProductionTask) => boolean;

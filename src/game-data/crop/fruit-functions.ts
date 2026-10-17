@@ -77,6 +77,19 @@ export function prepareFruitMaintenance(crop: FruitCrop): FruitPayment | null {
     }],
   } } };
 }
+export function prepareFruitFullMaintenance(crop: FruitCrop): FruitPayment | null {
+  let payment = prepareFruitMaintenance(crop);
+  if (!payment) return null;
+  let funded = payment.crop;
+  const cost = { ...payment.cost };
+  while ((payment = prepareFruitMaintenance(funded))) {
+    funded = payment.crop;
+    cost.gold += payment.cost.gold;
+    cost.silver += payment.cost.silver;
+  }
+  return { crop: funded, cost };
+}
+
 export function matureFruitIfReady(young: FruitYoung): FruitYoung | FruitAdult {
   const total = young.regularTokens + young.bonusTokens;
   return total < card.youngTokens

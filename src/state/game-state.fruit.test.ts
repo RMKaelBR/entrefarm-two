@@ -43,6 +43,44 @@ describe("fruit store lifecycle", () => {
     expect(state().wallet).toEqual({ gold: 1000 - 5 * lands.length, silver: 9 });
     expect(state().bank).toEqual({ gold: 7, silver: 3 });
   });
+  it("funds remaining young and adult slots atomically at current values", () => {
+    const id = start(); develop(id);
+    inject({ ...young(), payments: [{ cropMonth: 1, pointHundredths: 100 }] });
+    useGameStore.setState({ wallet: { gold: 13, silver: 99 } });
+    rejected(() => state().fundAllFruitMaintenance(id));
+    useGameStore.setState({ wallet: { gold: 14, silver: 9 } });
+    expect(state().fundAllFruitMaintenance(id)).toBe(true);
+    expect(state().wallet).toEqual({ gold: 0, silver: 9 });
+    expect(tree().lifecycle).toMatchObject({ payments: [
+      { cropMonth: 1, pointHundredths: 100 },
+      ...Array.from({ length: 14 }, () => ({ cropMonth: 6, pointHundredths: 75 })),
+    ] });
+    rejected(() => state().fundAllFruitMaintenance(id));
+    inject({ ...newFruitAdultCycle(), stage: "growing", cycleMonth: 7, payments: [{ cycleMonth: 1, weight: 100 }] });
+    useGameStore.setState({ wallet: { gold: 1, silver: 99 } });
+    rejected(() => state().fundAllFruitMaintenance(id));
+    useGameStore.setState({ wallet: { gold: 2, silver: 9 } });
+    expect(state().fundAllFruitMaintenance(id)).toBe(true);
+    expect(state().wallet).toEqual({ gold: 0, silver: 9 });
+    expect(tree().lifecycle).toMatchObject({ payments: [
+      { cycleMonth: 1, weight: 100 }, { cycleMonth: 7, weight: 50 }, { cycleMonth: 7, weight: 50 },
+    ] });
+    rejected(() => state().fundAllFruitMaintenance(id));
+    expect(state().bank).toEqual({ gold: 7, silver: 3 });
+  });
+  it("rejects bulk maintenance outside eligible fruit growth", () => {
+    rejected(() => state().fundAllFruitMaintenance("missing"));
+    const id = start();
+    rejected(() => state().fundAllFruitMaintenance(id));
+    for (const lifecycle of [ready(), { ...newFruitAdultCycle(), stage: "resting" as const },
+      { ...newFruitAdultCycle(), stage: "growing" as const, cycleMonth: 12 }]) {
+      inject(lifecycle);
+      rejected(() => state().fundAllFruitMaintenance(id));
+    }
+    const coconut = createCrop("coconut", "other", 1, 1);
+    useGameStore.setState({ crops: [coconut] });
+    rejected(() => state().fundAllFruitMaintenance(coconut.id));
+  });
   it("runs unmaintained growth and two collections without repurchase", () => {
     const id = start(); develop(id); const initial = tree();
     const random = vi.spyOn(Math, "random");
