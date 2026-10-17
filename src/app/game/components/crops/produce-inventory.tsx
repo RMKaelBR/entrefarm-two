@@ -12,7 +12,7 @@ export function ProduceInventory() {
             <dl>
                 {IMPLEMENTED_CROPS.map((definition) => (
                     <div key={definition.kind}>
-                        <dt>{definition.name}</dt>
+                        <dt><span aria-hidden="true">{definition.emoji}</span> {definition.name}</dt>
                         <dd>{inventory.filter((item) => item.crop === definition.kind).length} tokens</dd>
                     </div>
                 ))}

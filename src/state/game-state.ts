@@ -1,3 +1,4 @@
+import { canCollectFruit, fruitYield, collectFruitCycle } from "@/game-data/crop/fruit-functions";
 import { canCollectCoconut, coconutYield, finishAdultCycle, prepareCoconutFullMaintenance } from "@/game-data/crop/coconut-functions";
 import { create } from 'zustand';
 import {
@@ -366,6 +367,21 @@ export const useGameStore = create<GameState>((set, get) => ({
                     produceInventory: [...state.produceInventory, ...createCropProduce("coconut", quantity)],
                 };
             }
+            if (crop.kind === "fruit") {
+                const adult = crop.lifecycle;
+                if (adult.phase !== "adult" || !canCollectFruit(adult)) return state;
+                const quantity = fruitYield(adult);
+                committed = true;
+                return {
+                    ...state,
+                    crops: state.crops.map((item) => item.id === cropId
+                        ? { ...crop, lifecycle: collectFruitCycle(quantity) } : item),
+                    produceInventory: [
+                        ...state.produceInventory, ...createCropProduce("fruit", quantity),
+                    ],
+                };
+            }
+
             if (!isCashCropMature(crop) || !isCropProductionPaid(crop)) return state;
             const produce = createCropProduce(crop.kind, getCropYield(crop));
             committed = true;

@@ -4,7 +4,7 @@ import type { CoconutDevelopmentTask, CoconutProductionTask } from "./crop-types
 
 export const COCONUT_CARD = {
   seedlingCost: gold(1),
-  developmentCosts: { clearing: gold(1), hauling: gold(1), planting: gold(1) } satisfies Record<CoconutDevelopmentTask, Currency>,
+  developmentCosts: { siteClearing: gold(1), hauling: gold(1), planting: gold(1) } satisfies Record<CoconutDevelopmentTask, Currency>,
   youngTokens: 32,
   maintenanceSlots: 8,
   periodMonths: 6,

@@ -21,7 +21,7 @@ function start(index = 0) {
   return state().crops[state().crops.length - 1].id;
 }
 function develop(id: string) {
-  for (const task of ["clearing", "hauling", "planting"] as const) expect(state().fundCropDevelopment(id, task)).toBe(true);
+  for (const task of ["siteClearing", "hauling", "planting"] as const) expect(state().fundCropDevelopment(id, task)).toBe(true);
 }
 function inject(lifecycle: CoconutCrop["lifecycle"]) {
   const current = tree();
@@ -195,7 +195,7 @@ describe("coconut store lifecycle", () => {
       // @ts-expect-error Invalid runtime input.
       rejected(() => state().fundCropDevelopment(id, task));
     }
-    for (const task of ["clearing", "hauling", "planting"] as const) {
+    for (const task of ["siteClearing", "hauling", "planting"] as const) {
       useGameStore.setState({ wallet: { gold: 0, silver: 9 } });
       rejected(() => state().fundCropDevelopment(id, task));
       useGameStore.setState({ wallet: { gold: 1, silver: 9 } });

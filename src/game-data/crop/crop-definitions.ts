@@ -1,3 +1,4 @@
+import { FRUIT_CARD } from "./fruit-data";
 import { COCONUT_CARD } from "./coconut-data";
 import type { CropKind } from "./crop-types";
 import type { Land } from "../land/land-types";
@@ -7,19 +8,25 @@ import { CASH_CROP_CARDS } from "./cash-crop-data";
 type CropDefinition<K extends CropKind> = {
     kind: K;
     name: string;
+    emoji: string;
     purchaseLabel: string;
     purchaseCost: Currency;
     getPlacementBlockReason: (land: Land) => string | null;
 };
 
 export const CROP_DEFINITIONS = {
+    fruit: {
+        kind: "fruit", name: "Fruit", emoji: "🍎", purchaseLabel: "Seedlings",
+        purchaseCost: FRUIT_CARD.seedlingCost,
+        getPlacementBlockReason: () => null,
+    },
     coconut: {
-        kind: "coconut", name: "Coconut", purchaseLabel: "Seedling",
+        kind: "coconut", name: "Coconut", emoji: "🥥", purchaseLabel: "Seedling",
         purchaseCost: COCONUT_CARD.seedlingCost,
         getPlacementBlockReason: () => null,
     },
     rice: {
-        kind: "rice", name: "Rice", purchaseLabel: "Seeds",
+        kind: "rice", name: "Rice", emoji: "🌾", purchaseLabel: "Seeds",
         purchaseCost: CASH_CROP_CARDS.rice.seedCost,
         getPlacementBlockReason: (land: Land) => !land.isCleared
             ? "Clearing is required before planting rice."
@@ -28,7 +35,7 @@ export const CROP_DEFINITIONS = {
                 : null,
     },
     corn: {
-        kind: "corn", name: "Corn", purchaseLabel: "Seeds",
+        kind: "corn", name: "Corn", emoji: "🌽", purchaseLabel: "Seeds",
         purchaseCost: CASH_CROP_CARDS.corn.seedCost,
         getPlacementBlockReason: (land: Land) => !land.isCleared
             ? "Clearing is required before planting corn."

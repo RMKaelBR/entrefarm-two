@@ -2,7 +2,8 @@ import type { Land } from "../land/land-types";
 import type { TokenTrack } from "../types";
 
 export type CashCropKind = "rice" | "corn";
-export type CropKind = CashCropKind | "coconut";
+export type LongTermCropKind = "coconut" | "fruit";
+export type CropKind = CashCropKind | LongTermCropKind;
 export type CashCropDevelopmentTask = "plowing" | "planting";
 export type RiceProductionTask = "harvesting" | "hauling" | "drying";
 
@@ -42,10 +43,10 @@ export type ProduceToken = {
   crop: CropKind;
 };
 
-export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask;
-export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask;
+export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask;
+export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask;
 
-export type CoconutDevelopmentTask = "clearing" | "hauling" | "planting";
+export type CoconutDevelopmentTask = "siteClearing" | "hauling" | "planting";
 export type CoconutProductionTask = "climbingPiling" | "husking" | "hauling";
 export type CoconutYoung = {
   phase: "young";
@@ -76,4 +77,38 @@ export type CoconutCrop = {
     | CoconutYoung
     | CoconutAdult;
 };
-export type Crop = CashCrop | CoconutCrop;
+
+export type FruitDevelopmentTask = "siteClearing" | "hauling" | "planting";
+export type FruitProductionTask = "harvesting" | "hauling";
+export type FruitYoung = {
+  phase: "young";
+  cropMonth: number;
+  regularTokens: number;
+  bonusTokens: number;
+  payments: { cropMonth: number; pointHundredths: 100 | 90 | 75 }[];
+};
+export type FruitAdult = {
+  phase: "adult";
+  progress: number;
+  payments: { cycleMonth: number; weight: 100 | 75 | 50 | 25 }[];
+  production: Record<FruitProductionTask, boolean>;
+  lastHarvest: { outcome: "collected" | "lost"; quantity: number } | null;
+} & (
+  | { stage: "resting" }
+  | { stage: "growing"; cycleMonth: number }
+  | { stage: "ready"; cycleMonth: number; yieldResult: "high" | "low"; readyAge: 0 | 1 }
+);
+export type FruitCrop = {
+  kind: "fruit";
+  id: string;
+  landId: Land["id"];
+  startedYear: number;
+  startedMonth: number;
+  purchasing: { seedlingPaid: true };
+  lifecycle:
+    | { phase: "preparation"; development: Record<FruitDevelopmentTask, boolean> }
+    | FruitYoung
+    | FruitAdult;
+};
+
+export type Crop = CashCrop | CoconutCrop | FruitCrop;
