@@ -28,7 +28,7 @@ function inject(lifecycle: FruitCrop["lifecycle"]) {
   useGameStore.setState({ crops: [{ ...current, lifecycle }] });
 }
 const ready = (age: 0 | 1 = 0): FruitCrop["lifecycle"] => ({ ...newFruitAdultCycle(), stage: "ready", cycleMonth: 12, progress: 4, readyAge: age, yieldResult: "high" });
-const young = (): FruitYoung => ({ phase: "young", cropMonth: 6, regularTokens: 2, bonusTokens: 0, payments: [{ cropMonth: 6, pointHundredths: 75 }] });
+const young = (): FruitYoung => ({ phase: "young", cropMonth: 6, regularTokens: 2, bonusTokens: 0, payments: [{ month: 6, weightHundredths: 75 }] });
 beforeEach(() => useGameStore.setState({ year: 1, quarter: 1, month: 1, wallet: { gold: 1000, silver: 9 },
   bank: { gold: 7, silver: 3 }, lands: LAND_ORIGINS.map(createLand), crops: [], cropPlantingHistory: [],
   produceInventory: [], children: [], loans: [], hasActiveGame: true }));
@@ -45,25 +45,25 @@ describe("fruit store lifecycle", () => {
   });
   it("funds remaining young and adult slots atomically at current values", () => {
     const id = start(); develop(id);
-    inject({ ...young(), payments: [{ cropMonth: 1, pointHundredths: 100 }] });
+    inject({ ...young(), payments: [{ month: 1, weightHundredths: 100 }] });
     useGameStore.setState({ wallet: { gold: 13, silver: 99 } });
     rejected(() => state().fundAllFruitMaintenance(id));
     useGameStore.setState({ wallet: { gold: 14, silver: 9 } });
     expect(state().fundAllFruitMaintenance(id)).toBe(true);
     expect(state().wallet).toEqual({ gold: 0, silver: 9 });
     expect(tree().lifecycle).toMatchObject({ payments: [
-      { cropMonth: 1, pointHundredths: 100 },
-      ...Array.from({ length: 14 }, () => ({ cropMonth: 6, pointHundredths: 75 })),
+      { month: 1, weightHundredths: 100 },
+      ...Array.from({ length: 14 }, () => ({ month: 6, weightHundredths: 75 })),
     ] });
     rejected(() => state().fundAllFruitMaintenance(id));
-    inject({ ...newFruitAdultCycle(), stage: "growing", cycleMonth: 7, payments: [{ cycleMonth: 1, weight: 100 }] });
+    inject({ ...newFruitAdultCycle(), stage: "growing", cycleMonth: 7, payments: [{ month: 1, weightHundredths: 100 }] });
     useGameStore.setState({ wallet: { gold: 1, silver: 99 } });
     rejected(() => state().fundAllFruitMaintenance(id));
     useGameStore.setState({ wallet: { gold: 2, silver: 9 } });
     expect(state().fundAllFruitMaintenance(id)).toBe(true);
     expect(state().wallet).toEqual({ gold: 0, silver: 9 });
     expect(tree().lifecycle).toMatchObject({ payments: [
-      { cycleMonth: 1, weight: 100 }, { cycleMonth: 7, weight: 50 }, { cycleMonth: 7, weight: 50 },
+      { month: 1, weightHundredths: 100 }, { month: 7, weightHundredths: 50 }, { month: 7, weightHundredths: 50 },
     ] });
     rejected(() => state().fundAllFruitMaintenance(id));
     expect(state().bank).toEqual({ gold: 7, silver: 3 });
@@ -166,7 +166,7 @@ describe("fruit store lifecycle", () => {
   it.each(["bonus", "readiness", "deterioration", "loss", "rest"])("freezes %s at tuition, pending loans and December decision boundaries", (boundary) => {
     start();
     const lifecycle: FruitCrop["lifecycle"] = boundary === "bonus" ? young()
-      : boundary === "readiness" ? { ...newFruitAdultCycle(), stage: "growing", cycleMonth: 11, progress: 3, payments: [{ cycleMonth: 2, weight: 100 }] }
+      : boundary === "readiness" ? { ...newFruitAdultCycle(), stage: "growing", cycleMonth: 11, progress: 3, payments: [{ month: 2, weightHundredths: 100 }] }
       : boundary === "rest" ? { ...newFruitAdultCycle(), stage: "resting" } : ready(boundary === "loss" ? 1 : 0);
     inject(lifecycle);
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
@@ -186,10 +186,10 @@ describe("fruit store lifecycle", () => {
     expect(tree().lifecycle).toMatchObject(expected);
     expect(random).toHaveBeenCalledTimes(["bonus", "readiness"].includes(boundary) ? 1 : 0);
   });
-  it("staggers preparation and ticks fruit, coconut, rice and corn independently across years", () => {
+  it("staggers development and ticks fruit, coconut, rice and corn independently across years", () => {
     const first = start(); state().fundCropDevelopment(first, "siteClearing");
     state().advanceWorldTime();
-    expect(tree().lifecycle.phase).toBe("preparation");
+    expect(tree().lifecycle.phase).toBe("development");
     state().fundCropDevelopment(first, "hauling"); state().fundCropDevelopment(first, "planting");
     state().advanceWorldTime(); const second = start(1); develop(second);
     const coconut = createCrop("coconut", "c", 1, 1);

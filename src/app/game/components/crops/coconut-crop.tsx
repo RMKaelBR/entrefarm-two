@@ -27,8 +27,8 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
     return <section className="space-y-3 border bg-white p-4">
         <h3 className="font-semibold"><span aria-hidden="true">{CROP_DEFINITIONS.coconut.emoji}</span> Active Coconut Crop</h3>
         {!affordable && <p className="text-sm text-amber-700">Not enough whole gold for unpaid expenses.</p>}
-        {life.phase === "preparation" && <>
-            <p>Preparation · Seedling paid</p>
+        {life.phase === "development" && <>
+            <p>Development · Seedling paid</p>
             <p>Complete all three expenses to begin young month 1. Site clearing does not clear the land parcel.</p>
             {developmentTasks.map((task) => <div key={task}>
                 <p>{task === "hauling" ? "Seedling hauling" : labels[task]}: {life.development[task] ? "Paid" : "Unpaid"}</p>
@@ -38,27 +38,28 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
             </div>)}
         </>}
         {life.phase === "young" && <>
-            <p>Young · Crop month {life.cropMonth} · Period month {periodMonth(life.cropMonth)} / {card.periodMonths}</p>
-            <p>Growth: {youngProgress(life)} / {card.youngTokens} ({life.regularTokens} regular + {life.bonusTokens} bonus)</p>
-            <p>F&amp;M slots: {life.payments.length} / {card.maintenanceSlots} · Points: {pointTotal(life) / 100} · Bonus chance: {Number((bonusChance(life) * 100).toFixed(2))}%</p>
+            <p>Young · Crop month {life.cropMonth} · Period month {periodMonth(life.cropMonth)} / {card.developmentMaintenancePeriodMonths}</p>
+            <p>Development growth: {youngProgress(life)} / {card.developmentTokens} ({life.regularTokens} regular + {life.bonusTokens} bonus)</p>
+            <p>Development maintenance: {life.payments.length} / {card.developmentMaintenanceSlots} · Points: {pointTotal(life) / 100} · Bonus chance: {Number((bonusChance(life) * 100).toFixed(2))}%</p>
             <p>Each payment now adds {paymentPoints(life.cropMonth) / 100} points. Earlier payments keep their value.</p>
             <p>Regular growth arrives every third crop month. The bonus resolves after period month 6 ends, then slots reset.</p>
-            <Button label={`Fund young F&M (${card.maintenanceCost.gold} Gold)`}
-                disabled={!affordable || life.payments.length >= card.maintenanceSlots} onClick={() => maintain(crop.id)} />
-            <Button label={`Fund All for F&M (${fullMaintenance?.cost.gold ?? 0} Gold)`}
+            <Button label={`Fund development maintenance (${card.maintenanceCost.gold} Gold)`}
+                disabled={!affordable || life.payments.length >= card.developmentMaintenanceSlots} onClick={() => maintain(crop.id)} />
+            <Button label={`Fund all maintenance (${fullMaintenance?.cost.gold ?? 0} Gold)`}
                 className="ml-2"
                 disabled={!fullMaintenance || !hasWholeGold(wallet, fullMaintenance.cost)}
                 onClick={() => fundAllMaintenance(crop.id)} />
         </>}
         {life.phase === "adult" && <>
-            <p>Adult · {life.stage === "resting" ? "Between cycles" : `Cycle month ${life.cycleMonth}`} · Growth: {adultProgress(life)} / {card.adultTokens}</p>
+            <p>Adult · {life.stage === "resting" ? "Between cycles" : `Cycle month ${life.cycleMonth}`} · Production growth: {adultProgress(life)} / {card.productionTokens}</p>
             {life.lastHarvest && <p role="status">Last harvest: {life.lastHarvest.outcome} · {life.lastHarvest.quantity} produce tokens.</p>}
-            {life.stage !== "resting" && <p>Current F&amp;M: {life.fmPaidMonth ? `Paid in month ${life.fmPaidMonth}` : "Unfunded"}</p>}
+            <p>Production maintenance: {life.payments.length} / {card.productionMaintenanceSlots}</p>
+            {life.stage !== "resting" && <p>Current maintenance: {life.payments[0] ? `Paid in month ${life.payments[0].month}` : "Unfunded"}</p>}
             {life.stage === "resting" ? <>
                 <p>This harvest cycle has ended. The next successful monthly advance starts month 1 of the next cycle.</p>
             </> : life.stage === "growing" ? <>
-                <p>High-yield chance: {adultHighChance(life) * 100}%. Month 1 funding guarantees high yield; month 2 funding gives 75%. Ready in month {card.readyMonth}.</p>
-                <Button label={`Fund adult F&M (${card.maintenanceCost.gold} Gold)`} disabled={!affordable || life.fmPaidMonth !== null} onClick={() => maintain(crop.id)} />
+                <p>High-yield chance: {adultHighChance(life) * 100}%. Month 1 funding guarantees high yield; month 2 funding gives {card.monthTwoChance * 100}%. Normally ready in cycle month {card.productionCycleMonths}.</p>
+                <Button label={`Fund production maintenance (${card.maintenanceCost.gold} Gold)`} disabled={!affordable || life.payments.length >= card.productionMaintenanceSlots} onClick={() => maintain(crop.id)} />
             </> : <>
                 <p>{life.readyAge === 0 ? "Harvest-ready" : "Fallen fruit"} · Stored result: {life.yieldResult} · Available yield: {coconutYield(life)} tokens</p>
                 <p>{3 - life.readyAge} successful monthly advances before loss. Fruit falls on the first advance after readiness, reducing yield.</p>

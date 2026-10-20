@@ -1,17 +1,24 @@
 import type { Currency } from "../types";
 import { gold } from "../money/calculate-money";
-import type { CoconutDevelopmentTask, CoconutProductionTask } from "./crop-types";
+import type { CoconutDevelopmentTask, CoconutProductionTask, LongTermCropDefinition } from "./crop-types";
 
-export const COCONUT_CARD = {
+const shared = {
   seedlingCost: gold(1),
   developmentCosts: { siteClearing: gold(1), hauling: gold(1), planting: gold(1) } satisfies Record<CoconutDevelopmentTask, Currency>,
-  youngTokens: 32,
-  maintenanceSlots: 8,
-  periodMonths: 6,
-  regularTokenMonths: 3,
+  developmentTokens: 32,
+  developmentMaintenanceSlots: 8,
+  developmentMaintenancePeriodMonths: 6,
+  monthsPerGrowthToken: 3,
   maintenanceCost: gold(1),
-  adultTokens: 1,
-  readyMonth: 3,
+  productionTokens: 1,
+  productionMaintenanceSlots: 1,
+  get productionCycleMonths(): number {
+    return this.productionTokens * this.monthsPerGrowthToken;
+  },
+} as const satisfies LongTermCropDefinition;
+
+export const COCONUT_CARD = {
+  ...shared,
   monthTwoChance: 0.75,
   productionCosts: { climbingPiling: gold(1), husking: gold(1), hauling: gold(2) } satisfies Record<CoconutProductionTask, Currency>,
   readyYield: { high: 3, low: 2 },

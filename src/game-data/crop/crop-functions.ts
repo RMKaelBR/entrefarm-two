@@ -1,5 +1,5 @@
-import { prepareFruitDevelopment, prepareFruitMaintenance, prepareFruitProduction, tickFruit } from "./fruit-functions";
-import { prepareCoconutDevelopment, prepareCoconutMaintenance, prepareCoconutProduction, tickCoconut, type RandomSource } from "./coconut-functions";
+import { prepareFruitPreparation, prepareFruitMaintenance, prepareFruitProduction, tickFruit } from "./fruit-functions";
+import { prepareCoconutPreparation, prepareCoconutMaintenance, prepareCoconutProduction, tickCoconut, type RandomSource } from "./coconut-functions";
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
 import { CROP_DEFINITIONS, IMPLEMENTED_CROPS } from "./crop-definitions";
@@ -75,7 +75,7 @@ export function createCrop(kind: CropKind, landId: Land["id"], year: number, mon
   if (kind === "coconut" || kind === "fruit") return {
     kind, id: crypto.randomUUID(), landId, startedYear: year, startedMonth: month,
     purchasing: { seedlingPaid: true },
-    lifecycle: { phase: "preparation", development: { siteClearing: false, hauling: false, planting: false } },
+    lifecycle: { phase: "development", development: { siteClearing: false, hauling: false, planting: false } },
   };
   const common = {
     id: crypto.randomUUID(), landId, startedYear: year, startedMonth: month,
@@ -106,8 +106,8 @@ export function prepareCropDevelopment(
   task: unknown,
   parcelIsIrrigated: boolean | undefined,
 ): CropPayment | null {
-  if (crop.kind === "fruit") return prepareFruitDevelopment(crop, task);
-  if (crop.kind === "coconut") return prepareCoconutDevelopment(crop, task);
+  if (crop.kind === "fruit") return prepareFruitPreparation(crop, task);
+  if (crop.kind === "coconut") return prepareCoconutPreparation(crop, task);
   const costs = CASH_CROP_CARDS[crop.kind].developmentCosts;
   if (getCashCropStage(crop) !== "preparation" || !hasOwnStringKey(costs, task) || crop.development[task]) return null;
   const next: CashCrop = {

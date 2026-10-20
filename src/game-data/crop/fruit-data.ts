@@ -1,19 +1,26 @@
 import { gold } from "../money/calculate-money";
 import type { Currency } from "../types";
-import type { FruitDevelopmentTask, FruitProductionTask } from "./crop-types";
+import type { FruitDevelopmentTask, FruitProductionTask, LongTermCropDefinition } from "./crop-types";
 
-export const FRUIT_CARD = {
+const shared = {
   seedlingCost: gold(2),
   developmentCosts: {
     siteClearing: gold(1), hauling: gold(1), planting: gold(1),
   } satisfies Record<FruitDevelopmentTask, Currency>,
-  youngTokens: 20,
-  youngMaintenanceSlots: 15,
-  periodMonths: 6,
-  regularTokenMonths: 3,
+  developmentTokens: 20,
+  developmentMaintenanceSlots: 15,
+  developmentMaintenancePeriodMonths: 6,
+  monthsPerGrowthToken: 3,
   maintenanceCost: gold(1),
-  adultTokens: 4,
-  adultMaintenanceSlots: 3,
+  productionTokens: 4,
+  productionMaintenanceSlots: 3,
+  get productionCycleMonths(): number {
+    return this.productionTokens * this.monthsPerGrowthToken;
+  },
+} as const satisfies LongTermCropDefinition;
+
+export const FRUIT_CARD = {
+  ...shared,
   productionCosts: {
     harvesting: gold(7), hauling: gold(3),
   } satisfies Record<FruitProductionTask, Currency>,

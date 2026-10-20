@@ -27,8 +27,8 @@ function inject(lifecycle: CoconutCrop["lifecycle"]) {
   const current = tree();
   useGameStore.setState({ crops: [{ ...current, lifecycle }] });
 }
-const ready = (age: 0 | 1 | 2 = 0): CoconutCrop["lifecycle"] => ({ ...newAdultCycle(), stage: "ready", cycleMonth: 3, readyAge: age, yieldResult: "high", fromOverflow: false });
-const young = (): CoconutYoung => ({ phase: "young", cropMonth: 6, regularTokens: 2, bonusTokens: 0, payments: [{ cropMonth: 6, pointHundredths: 75 }] });
+const ready = (age: 0 | 1 | 2 = 0): CoconutCrop["lifecycle"] => ({ ...newAdultCycle(), stage: "ready", cycleMonth: 3, progress: 1, readyAge: age, yieldResult: "high", fromOverflow: false });
+const young = (): CoconutYoung => ({ phase: "young", cropMonth: 6, regularTokens: 2, bonusTokens: 0, payments: [{ month: 6, weightHundredths: 75 }] });
 beforeEach(() => useGameStore.setState({ year: 1, quarter: 1, month: 1, wallet: { gold: 1000, silver: 9 },
   bank: { gold: 7, silver: 3 }, lands: LAND_ORIGINS.map(createLand), crops: [], cropPlantingHistory: [],
   produceInventory: [], children: [], loans: [], hasActiveGame: true }));
@@ -42,18 +42,18 @@ describe("coconut store lifecycle", () => {
     useGameStore.setState({ wallet: { gold: 8, silver: 9 } });
     expect(state().fundAllCoconutMaintenance(id)).toBe(true);
     expect(state().wallet).toEqual({ gold: 0, silver: 9 });
-    expect(tree().lifecycle).toMatchObject({ payments: Array.from({ length: 8 }, () => ({ cropMonth: 1, pointHundredths: 100 })) });
+    expect(tree().lifecycle).toMatchObject({ payments: Array.from({ length: 8 }, () => ({ month: 1, weightHundredths: 100 })) });
     rejected(() => state().fundAllCoconutMaintenance(id));
   });
   it("fills only remaining slots using current-month points and preserves earlier payments", () => {
-    const id = start(); inject({ ...young(), cropMonth: 3, payments: [{ cropMonth: 1, pointHundredths: 100 }] });
+    const id = start(); inject({ ...young(), cropMonth: 3, payments: [{ month: 1, weightHundredths: 100 }] });
     useGameStore.setState({ wallet: { gold: 7, silver: 9 } });
     expect(state().fundAllCoconutMaintenance(id)).toBe(true);
     expect(state().wallet).toEqual({ gold: 0, silver: 9 });
-    expect(tree().lifecycle).toMatchObject({ payments: [{ cropMonth: 1, pointHundredths: 100 },
-      ...Array.from({ length: 7 }, () => ({ cropMonth: 3, pointHundredths: 90 }))] });
+    expect(tree().lifecycle).toMatchObject({ payments: [{ month: 1, weightHundredths: 100 },
+      ...Array.from({ length: 7 }, () => ({ month: 3, weightHundredths: 90 }))] });
   });
-  it("rejects bulk maintenance for missing crops, preparation, adult trees, and cash crops", () => {
+  it("rejects bulk maintenance for missing crops, development, adult trees, and cash crops", () => {
     rejected(() => state().fundAllCoconutMaintenance("missing"));
     const id = start();
     rejected(() => state().fundAllCoconutMaintenance(id));
@@ -149,7 +149,7 @@ describe("coconut store lifecycle", () => {
     expect(state().fundCropMaintenance(id)).toBe(true);
     expect(state().wallet.gold).toBe(before.wallet.gold - 1);
     expect(state().bank).toBe(before.bank);
-    expect(tree().lifecycle).toMatchObject({ fmPaidMonth: month });
+    expect(tree().lifecycle).toMatchObject({ payments: [{ month, weightHundredths: month === 1 ? 100 : 75 }] });
     rejected(() => state().fundCropMaintenance(id));
     for (let next = month + 1; next <= 3; next++) state().advanceWorldTime();
     expect(tree().lifecycle).toMatchObject({ stage: "ready", yieldResult: "high" });
@@ -158,10 +158,10 @@ describe("coconut store lifecycle", () => {
       rejected(() => state().fundCropMaintenance(id));
       state().advanceWorldTime();
     }
-    expect(tree().lifecycle).toMatchObject({ stage: "resting", fmPaidMonth: null });
+    expect(tree().lifecycle).toMatchObject({ stage: "resting", progress: 0, payments: [] });
     rejected(() => state().fundCropMaintenance(id));
     state().advanceWorldTime();
-    expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, fmPaidMonth: null });
+    expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, payments: [] });
     expect(state().fundCropMaintenance(id)).toBe(true);
     expect(random).toHaveBeenCalledTimes(month === 2 ? 1 : 0);
   });
@@ -179,7 +179,7 @@ describe("coconut store lifecycle", () => {
     expect(tree(first).lifecycle).toMatchObject({ cropMonth: 4, regularTokens: 1 });
     expect(tree(second).lifecycle).toMatchObject({ cropMonth: 3, regularTokens: 1 });
   });
-  it("freezes unpaid preparation across advances", () => {
+  it("freezes unpaid development across advances", () => {
     const id = start(); const before = tree();
     state().advanceWorldTime(); state().advanceWorldTime();
     expect(tree()).toBe(before);
@@ -236,9 +236,9 @@ describe("coconut store lifecycle", () => {
     expect(state().fundCropProduction(id, "hauling")).toBe(true);
     expect(state().harvestCrop(id)).toBe(true);
     expect(state().produceInventory).toHaveLength(2);
-    expect(tree().lifecycle).toMatchObject({ stage: "resting", fmPaidMonth: null });
+    expect(tree().lifecycle).toMatchObject({ stage: "resting", progress: 0, payments: [] });
     state().advanceWorldTime();
-    expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, fmPaidMonth: null });
+    expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, payments: [] });
   });
   it("loses on the third advance without refunds or produce and restarts unfunded", () => {
     const id = start(); inject(ready());
@@ -251,7 +251,7 @@ describe("coconut store lifecycle", () => {
     state().advanceWorldTime();
     expect(tree().lifecycle).toMatchObject({ readyAge: 2 });
     state().advanceWorldTime();
-    expect(tree().lifecycle).toMatchObject({ stage: "resting", fmPaidMonth: null, lastHarvest: { outcome: "lost", quantity: 0 } });
+    expect(tree().lifecycle).toMatchObject({ stage: "resting", progress: 0, payments: [], lastHarvest: { outcome: "lost", quantity: 0 } });
     state().advanceWorldTime();
     expect(tree().lifecycle).toEqual({ ...newAdultCycle(), lastHarvest: { outcome: "lost", quantity: 0 } });
     expect(tree().id).toBe(id);
