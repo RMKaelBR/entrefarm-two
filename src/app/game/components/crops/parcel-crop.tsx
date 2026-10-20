@@ -62,7 +62,7 @@ function CropChooser({ land }: { land: Land }) {
             >
                 <option value="">Select a crop</option>
                 {IMPLEMENTED_CROPS.map((item) => (
-                    <option key={item.kind} value={item.kind}>{item.name}</option>
+                    <option key={item.kind} value={item.kind}>{item.emoji} {item.name}</option>
                 ))}
             </select>
             <Button

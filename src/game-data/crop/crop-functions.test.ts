@@ -25,7 +25,7 @@ import {
 import type { CropPlantingRecord, Crop } from "./crop-types";
 
 function cash(crop: Crop) {
-  if (crop.kind === "coconut") throw new Error("Expected cash crop");
+  if ((crop.kind === "coconut" || crop.kind === "fruit")) throw new Error("Expected cash crop");
   return crop;
 }
 
@@ -188,7 +188,7 @@ describe("rice lowland and snapshot boundaries", () => {
 
 describe("registered placement rules", () => {
   it("recognizes only implemented crop kinds", () => {
-    for (const kind of ["rice", "corn", "coconut"]) expect(isCropKind(kind)).toBe(true);
+    for (const kind of ["rice", "corn", "coconut", "fruit"]) expect(isCropKind(kind)).toBe(true);
     for (const value of ["toString", "__proto__", "unknown", "", null, undefined, {}]) {
       expect(isCropKind(value)).toBe(false);
     }

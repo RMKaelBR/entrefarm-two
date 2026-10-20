@@ -191,12 +191,12 @@ describe("corn harvest and independent time", () => {
     develop(id);
     state().advanceWorldTime();
     expect(state().crops.map((crop) => {
-      if (crop.kind === "coconut") throw new Error("Expected cash crop");
+      if ((crop.kind === "coconut" || crop.kind === "fruit")) throw new Error("Expected cash crop");
       return getCashCropStage(crop);
     })).toEqual(["harvest", "maintenance"]);
     state().advanceWorldTime();
     expect(state().crops.map((crop) => {
-      if (crop.kind === "coconut") throw new Error("Expected cash crop");
+      if ((crop.kind === "coconut" || crop.kind === "fruit")) throw new Error("Expected cash crop");
       return getCashCropStage(crop);
     })).toEqual(["harvest", "harvest"]);
     const matureRice = state().crops[0];

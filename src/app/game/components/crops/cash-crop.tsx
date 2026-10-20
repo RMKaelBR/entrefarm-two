@@ -57,7 +57,7 @@ export function CashCropComponent({ crop }: { crop: CashCrop }) {
 
     return (
         <section className="space-y-3 border bg-white p-4">
-            <h3 className="font-semibold">Active {definition.name} Crop</h3>
+            <h3 className="font-semibold"><span aria-hidden="true">{definition.emoji}</span> Active {definition.name} Crop</h3>
 
             {config.showAffordabilityWarning && hasUnaffordableTask && (
                 <p className="text-sm text-amber-700">Not enough whole gold in your wallet for the disabled tasks.</p>

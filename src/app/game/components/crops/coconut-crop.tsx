@@ -1,5 +1,7 @@
 "use client";
 
+import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
+
 import { COCONUT_CARD as card } from "@/game-data/crop/coconut-data";
 import { adultHighChance, adultProgress, bonusChance, canCollectCoconut, coconutYield, paymentPoints,
     periodMonth, pointTotal, prepareCoconutFullMaintenance, youngProgress } from "@/game-data/crop/coconut-functions";
@@ -8,9 +10,9 @@ import type { CoconutCrop } from "@/game-data/crop/crop-types";
 import { useGameStore } from "@/state/game-state";
 import { Button } from "../button";
 
-const developmentTasks = ["clearing", "hauling", "planting"] as const;
+const developmentTasks = ["siteClearing", "hauling", "planting"] as const;
 const productionTasks = ["climbingPiling", "husking", "hauling"] as const;
-const labels = { clearing: "Clearing", planting: "Planting", hauling: "Hauling", climbingPiling: "Climbing/piling", husking: "Husking" };
+const labels = { siteClearing: "Site clearing", planting: "Planting", hauling: "Hauling", climbingPiling: "Climbing/piling", husking: "Husking" };
 
 export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
     const wallet = useGameStore((s) => s.wallet);
@@ -23,11 +25,11 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
     const life = crop.lifecycle;
     const affordable = hasWholeGold(wallet, card.maintenanceCost);
     return <section className="space-y-3 border bg-white p-4">
-        <h3 className="font-semibold">Active Coconut Crop</h3>
+        <h3 className="font-semibold"><span aria-hidden="true">{CROP_DEFINITIONS.coconut.emoji}</span> Active Coconut Crop</h3>
         {!affordable && <p className="text-sm text-amber-700">Not enough whole gold for unpaid expenses.</p>}
         {life.phase === "preparation" && <>
             <p>Preparation · Seedling paid</p>
-            <p>Complete all three expenses to begin young month 1. Crop clearing does not clear the parcel.</p>
+            <p>Complete all three expenses to begin young month 1. Site clearing does not clear the land parcel.</p>
             {developmentTasks.map((task) => <div key={task}>
                 <p>{task === "hauling" ? "Seedling hauling" : labels[task]}: {life.development[task] ? "Paid" : "Unpaid"}</p>
                 <Button label={`Fund ${task === "hauling" ? "Seedling hauling" : labels[task]} (${card.developmentCosts[task].gold} Gold)`}

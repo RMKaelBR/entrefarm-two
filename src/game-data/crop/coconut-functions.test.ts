@@ -16,7 +16,7 @@ describe("coconut preparation and young growth", () => {
     const random = vi.fn();
     expect(tickCoconut(tree, random)).toBe(tree);
     expect(prepareCoconutMaintenance(tree)).toBeNull();
-    for (const task of ["clearing", "hauling", "planting"] as const) {
+    for (const task of ["siteClearing", "hauling", "planting"] as const) {
       const proposal = prepareCoconutDevelopment(tree, task)!;
       expect(proposal.cost).toEqual({ gold: 1, silver: 0 });
       tree = proposal.crop;

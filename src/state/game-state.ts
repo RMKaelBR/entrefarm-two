@@ -1,3 +1,4 @@
+import { canCollectFruit, fruitYield, collectFruitCycle, prepareFruitFullMaintenance } from "@/game-data/crop/fruit-functions";
 import { canCollectCoconut, coconutYield, finishAdultCycle, prepareCoconutFullMaintenance } from "@/game-data/crop/coconut-functions";
 import { create } from 'zustand';
 import {
@@ -332,6 +333,23 @@ export const useGameStore = create<GameState>((set, get) => ({
         return committed;
     },
 
+    fundAllFruitMaintenance: (cropId) => {
+        let committed = false;
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+            if (!crop || crop.kind !== "fruit") return state;
+            const payment = prepareFruitFullMaintenance(crop);
+            if (!payment || !hasWholeGold(state.wallet, payment.cost)) return state;
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, payment.cost),
+                crops: state.crops.map((item) => item.id === cropId ? payment.crop : item),
+            };
+        });
+        return committed;
+    },
+
     fundCropProduction: (cropId, task) => {
         let committed = false;
         set((state) => {
@@ -366,6 +384,21 @@ export const useGameStore = create<GameState>((set, get) => ({
                     produceInventory: [...state.produceInventory, ...createCropProduce("coconut", quantity)],
                 };
             }
+            if (crop.kind === "fruit") {
+                const adult = crop.lifecycle;
+                if (adult.phase !== "adult" || !canCollectFruit(adult)) return state;
+                const quantity = fruitYield(adult);
+                committed = true;
+                return {
+                    ...state,
+                    crops: state.crops.map((item) => item.id === cropId
+                        ? { ...crop, lifecycle: collectFruitCycle(quantity) } : item),
+                    produceInventory: [
+                        ...state.produceInventory, ...createCropProduce("fruit", quantity),
+                    ],
+                };
+            }
+
             if (!isCashCropMature(crop) || !isCropProductionPaid(crop)) return state;
             const produce = createCropProduce(crop.kind, getCropYield(crop));
             committed = true;
