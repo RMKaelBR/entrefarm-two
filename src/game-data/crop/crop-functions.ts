@@ -1,3 +1,4 @@
+import { newLongTermPreparation } from "./long-term-crop-functions";
 import { prepareFruitPreparation, prepareFruitMaintenance, prepareFruitProduction, tickFruit } from "./fruit-functions";
 import { prepareCoconutPreparation, prepareCoconutMaintenance, prepareCoconutProduction, tickCoconut, type RandomSource } from "./coconut-functions";
 import type { Land } from "../land/land-types";
@@ -75,7 +76,7 @@ export function createCrop(kind: CropKind, landId: Land["id"], year: number, mon
   if (kind === "coconut" || kind === "fruit") return {
     kind, id: crypto.randomUUID(), landId, startedYear: year, startedMonth: month,
     purchasing: { seedlingPaid: true },
-    lifecycle: { phase: "development", development: { siteClearing: false, hauling: false, planting: false } },
+    lifecycle: newLongTermPreparation(),
   };
   const common = {
     id: crypto.randomUUID(), landId, startedYear: year, startedMonth: month,

@@ -1,24 +1,20 @@
-import { maintenanceChance, maintenanceWeightTotal, productionProgressAfterAdvance } from "./long-term-crop-functions";
+import { advanceYoungTrack, developmentProgress, prepareLongTermPreparation, prepareYoungMaintenance, succeeds, youngBonusChance, youngPaymentWeight, youngPeriodMonth, type RandomSource, maintenanceChance, maintenanceWeightTotal, productionProgressAfterAdvance } from "./long-term-crop-functions";
 import { COCONUT_CARD as card } from "./coconut-data";
 import type { CoconutAdult, CoconutCrop, CoconutYoung } from "./crop-types";
 import type { Currency } from "../types";
 
-export type RandomSource = () => number;
+export { succeeds, type RandomSource } from "./long-term-crop-functions";
 type Payment = { crop: CoconutCrop; cost: Currency };
 const owns = <T extends object>(object: T, key: unknown): key is Extract<keyof T, string> =>
   typeof key === "string" && Object.prototype.hasOwnProperty.call(object, key);
-export const periodMonth = (month: number) => ((month - 1) % card.developmentMaintenancePeriodMonths) + 1;
-export const paymentPoints = (month: number): 100 | 90 | 75 => {
-  const relative = periodMonth(month);
-  return relative <= 2 ? 100 : relative <= 4 ? 90 : 75;
-};
+export const periodMonth = youngPeriodMonth;
+export const paymentPoints = youngPaymentWeight;
 export const pointTotal = (young: CoconutYoung) =>
   maintenanceWeightTotal(young.payments);
-export const bonusChance = (young: CoconutYoung) => maintenanceChance(young.payments, card.developmentMaintenanceSlots);
-export const youngProgress = (young: CoconutYoung) => Math.min(card.developmentTokens, young.regularTokens + young.bonusTokens);
+export const bonusChance = (young: CoconutYoung) => youngBonusChance(young, card.developmentMaintenanceSlots);
+export const youngProgress = (young: CoconutYoung) => developmentProgress(young, card.developmentTokens);
 export const adultProgress = (adult: CoconutAdult) => adult.progress;
 export const adultHighChance = (adult: CoconutAdult) => maintenanceChance(adult.payments, card.productionMaintenanceSlots);
-export const succeeds = (chance: number, random: RandomSource) => chance >= 1 || (chance > 0 && random() < chance);
 
 export function newAdultCycle(): CoconutAdult {
   return { phase: "adult", stage: "growing", cycleMonth: 1, progress: 0, payments: [],
@@ -32,12 +28,9 @@ export function matureIfReady(young: CoconutYoung): CoconutYoung | CoconutAdult 
     yieldResult: "low", readyAge: 0, fromOverflow: true };
 }
 export function tickYoung(young: CoconutYoung, random: RandomSource): CoconutYoung | CoconutAdult {
-  let next = { ...young, cropMonth: young.cropMonth + 1 };
-  if (young.cropMonth % card.developmentMaintenancePeriodMonths === 0) {
-    next = { ...next, bonusTokens: next.bonusTokens + (succeeds(bonusChance(young), random) ? 1 : 0), payments: [] };
-  }
-  if (next.cropMonth % card.monthsPerGrowthToken === 0) next = { ...next, regularTokens: next.regularTokens + 1 };
-  return matureIfReady(next);
+  return matureIfReady(
+    advanceYoungTrack(young, card.developmentMaintenanceSlots, random),
+  );
 }
 export function finishAdultCycle(outcome: "collected" | "lost", quantity: number): CoconutAdult {
   return {
@@ -82,19 +75,16 @@ export const canCollectCoconut = (adult: CoconutAdult) => adult.stage === "ready
 
 export function prepareCoconutPreparation(crop: CoconutCrop, task: unknown): Payment | null {
   const life = crop.lifecycle;
-  if (life.phase !== "development" || !owns(card.developmentCosts, task) || life.development[task]) return null;
-  const development = { ...life.development, [task]: true };
-  return { cost: card.developmentCosts[task], crop: { ...crop, lifecycle: Object.values(development).every(Boolean)
-    ? { phase: "young", cropMonth: 1, regularTokens: 0, bonusTokens: 0, payments: [] }
-    : { ...life, development } } };
+  if (life.phase !== "development") return null;
+  const payment = prepareLongTermPreparation(life, card.developmentCosts, task);
+  return payment ? { cost: payment.cost, crop: { ...crop, lifecycle: payment.state } } : null;
 }
 export function prepareCoconutMaintenance(crop: CoconutCrop): Payment | null {
   const life = crop.lifecycle;
   if (life.phase === "development") return null;
   if (life.phase === "young") {
-    if (life.payments.length >= card.developmentMaintenanceSlots) return null;
-    return { cost: card.maintenanceCost, crop: { ...crop, lifecycle: { ...life, payments: [...life.payments,
-      { month: life.cropMonth, weightHundredths: paymentPoints(life.cropMonth) }] } } };
+    const payment = prepareYoungMaintenance(life, card.developmentMaintenanceSlots);
+    return payment ? { cost: payment.cost, crop: { ...crop, lifecycle: payment.state } } : null;
   }
   if (life.stage !== "growing" || life.payments.length >= card.productionMaintenanceSlots) return null;
   const weightHundredths: 100 | 75 = life.cycleMonth === 1 ? 100 : 75;
@@ -104,13 +94,8 @@ export function prepareCoconutMaintenance(crop: CoconutCrop): Payment | null {
 export function prepareCoconutFullMaintenance(crop: CoconutCrop): Payment | null {
   const life = crop.lifecycle;
   if (life.phase !== "young") return null;
-  const remaining = card.developmentMaintenanceSlots - life.payments.length;
-  if (remaining <= 0) return null;
-  return {
-    cost: { gold: card.maintenanceCost.gold * remaining, silver: card.maintenanceCost.silver * remaining },
-    crop: { ...crop, lifecycle: { ...life, payments: [...life.payments,
-      ...Array.from({ length: remaining }, () => ({ month: life.cropMonth, weightHundredths: paymentPoints(life.cropMonth) }))] } },
-  };
+  const payment = prepareYoungMaintenance(life, card.developmentMaintenanceSlots, "all");
+  return payment ? { cost: payment.cost, crop: { ...crop, lifecycle: payment.state } } : null;
 }
 
 export function prepareCoconutProduction(crop: CoconutCrop, task: unknown): Payment | null {

@@ -37,7 +37,7 @@ describe("fruit rules", () => {
   it("keeps development frozen and starts young month one only on final payment", () => {
     let tree = createCrop("fruit", "land", 1, 1);
     const random = vi.fn();
-    for (const task of ["siteClearing", "hauling", "planting"]) {
+    for (const task of ["siteClearing", "seedlingHauling", "planting"]) {
       expect(tickFruit(tree, random)).toBe(tree);
       tree = prepareFruitPreparation(tree, task)!.crop;
       expect(prepareFruitPreparation(tree, task)).toBeNull();

@@ -21,7 +21,7 @@ function start(index = 0) {
   return state().crops[state().crops.length - 1].id;
 }
 function develop(id: string) {
-  for (const task of ["siteClearing", "hauling", "planting"] as const) expect(state().fundCropDevelopment(id, task)).toBe(true);
+  for (const task of ["siteClearing", "seedlingHauling", "planting"] as const) expect(state().fundCropDevelopment(id, task)).toBe(true);
 }
 function inject(lifecycle: FruitCrop["lifecycle"]) {
   const current = tree();
@@ -116,11 +116,13 @@ describe("fruit store lifecycle", () => {
     rejected(() => state().startCropPlanting("fruit", state().lands[0].id));
     useGameStore.setState({ wallet: { gold: 100, silver: 9 } });
     const id = start();
+    // @ts-expect-error Legacy preparation key must be rejected at runtime.
+    rejected(() => state().fundCropDevelopment(id, "hauling"));
     for (const task of ["toString", "__proto__", "unknown"]) {
       // @ts-expect-error Invalid runtime input.
       rejected(() => state().fundCropDevelopment(id, task));
     }
-    for (const task of ["siteClearing", "hauling", "planting"] as const) {
+    for (const task of ["siteClearing", "seedlingHauling", "planting"] as const) {
       useGameStore.setState({ wallet: { gold: 0, silver: 99 } });
       rejected(() => state().fundCropDevelopment(id, task));
       useGameStore.setState({ wallet: { gold: 1, silver: 9 } });
@@ -190,7 +192,7 @@ describe("fruit store lifecycle", () => {
     const first = start(); state().fundCropDevelopment(first, "siteClearing");
     state().advanceWorldTime();
     expect(tree().lifecycle.phase).toBe("development");
-    state().fundCropDevelopment(first, "hauling"); state().fundCropDevelopment(first, "planting");
+    state().fundCropDevelopment(first, "seedlingHauling"); state().fundCropDevelopment(first, "planting");
     state().advanceWorldTime(); const second = start(1); develop(second);
     const coconut = createCrop("coconut", "c", 1, 1);
     const rice = createCrop("rice", "r", 1, 1); const corn = createCrop("corn", "m", 1, 1);

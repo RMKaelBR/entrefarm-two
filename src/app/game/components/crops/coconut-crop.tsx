@@ -10,9 +10,9 @@ import type { CoconutCrop } from "@/game-data/crop/crop-types";
 import { useGameStore } from "@/state/game-state";
 import { Button } from "../button";
 
-const developmentTasks = ["siteClearing", "hauling", "planting"] as const;
+const developmentTasks = ["siteClearing", "seedlingHauling", "planting"] as const;
 const productionTasks = ["climbingPiling", "husking", "hauling"] as const;
-const labels = { siteClearing: "Site clearing", planting: "Planting", hauling: "Hauling", climbingPiling: "Climbing/piling", husking: "Husking" };
+const labels = { siteClearing: "Site clearing", seedlingHauling: "Seedling hauling", planting: "Planting", hauling: "Hauling", climbingPiling: "Climbing/piling", husking: "Husking" };
 
 export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
     const wallet = useGameStore((s) => s.wallet);
@@ -31,8 +31,8 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
             <p>Development · Seedling paid</p>
             <p>Complete all three expenses to begin young month 1. Site clearing does not clear the land parcel.</p>
             {developmentTasks.map((task) => <div key={task}>
-                <p>{task === "hauling" ? "Seedling hauling" : labels[task]}: {life.development[task] ? "Paid" : "Unpaid"}</p>
-                <Button label={`Fund ${task === "hauling" ? "Seedling hauling" : labels[task]} (${card.developmentCosts[task].gold} Gold)`}
+                <p>{labels[task]}: {life.development[task] ? "Paid" : "Unpaid"}</p>
+                <Button label={`Fund ${labels[task]} (${card.developmentCosts[task].gold} Gold)`}
                     disabled={life.development[task] || !hasWholeGold(wallet, card.developmentCosts[task])}
                     onClick={() => develop(crop.id, task)} />
             </div>)}

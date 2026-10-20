@@ -47,7 +47,11 @@ export type ProduceToken = {
 export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask;
 export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask;
 
-export type LongTermDevelopmentTask = "siteClearing" | "hauling" | "planting";
+export type LongTermDevelopmentTask = "siteClearing" | "seedlingHauling" | "planting";
+export type LongTermPreparation = {
+  phase: "development";
+  development: Record<LongTermDevelopmentTask, boolean>;
+};
 export type LongTermCropDefinition = {
   seedlingCost: Currency;
   developmentCosts: Record<LongTermDevelopmentTask, Currency>;
@@ -95,7 +99,7 @@ export type CoconutCrop = {
   startedMonth: number;
   purchasing: { seedlingPaid: true };
   lifecycle:
-    | { phase: "development"; development: Record<CoconutDevelopmentTask, boolean> }
+    | LongTermPreparation
     | CoconutYoung
     | CoconutAdult;
 };
@@ -122,7 +126,7 @@ export type FruitCrop = {
   startedMonth: number;
   purchasing: { seedlingPaid: true };
   lifecycle:
-    | { phase: "development"; development: Record<FruitDevelopmentTask, boolean> }
+    | LongTermPreparation
     | FruitYoung
     | FruitAdult;
 };

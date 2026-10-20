@@ -4,15 +4,15 @@ import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
 
 import { FRUIT_CARD as card } from "@/game-data/crop/fruit-data";
 import { canCollectFruit, fruitBonusChance, fruitHighChance, fruitPeriodMonth, fruitYield, prepareFruitMaintenance, prepareFruitFullMaintenance, fruitYoungPoints } from "@/game-data/crop/fruit-functions";
-import { maintenanceWeightTotal } from "@/game-data/crop/long-term-crop-functions";
+import { developmentProgress, maintenanceWeightTotal } from "@/game-data/crop/long-term-crop-functions";
 import { hasWholeGold } from "@/game-data/crop/crop-functions";
 import type { FruitCrop } from "@/game-data/crop/crop-types";
 import { useGameStore } from "@/state/game-state";
 import { Button } from "../button";
 
-const developmentTasks = ["siteClearing", "hauling", "planting"] as const;
+const developmentTasks = ["siteClearing", "seedlingHauling", "planting"] as const;
 const productionTasks = ["harvesting", "hauling"] as const;
-const labels = { siteClearing: "Site clearing", hauling: "Seedling hauling", planting: "Planting" };
+const labels = { siteClearing: "Site clearing", seedlingHauling: "Seedling hauling", planting: "Planting" };
 const percentage = (chance: number) => `${Number((chance * 100).toFixed(2))}%`;
 
 export function FruitCropComponent({ crop }: { crop: FruitCrop }) {
@@ -40,7 +40,7 @@ export function FruitCropComponent({ crop }: { crop: FruitCrop }) {
         </> : <>
             {life.phase === "young" ? <>
                 <p>Young · Crop month {life.cropMonth} · Period month {fruitPeriodMonth(life.cropMonth)} / {card.developmentMaintenancePeriodMonths}</p>
-                <p>Development growth: {life.regularTokens + life.bonusTokens} / {card.developmentTokens} ({life.regularTokens} regular + {life.bonusTokens} bonus)</p>
+                <p>Development growth: {developmentProgress(life, card.developmentTokens)} / {card.developmentTokens} ({life.regularTokens} regular + {life.bonusTokens} bonus)</p>
                 <p>Development maintenance: {life.payments.length} / {card.developmentMaintenanceSlots} · Points: {maintenanceWeightTotal(life.payments) / 100} · Bonus chance: {percentage(fruitBonusChance(life))}</p>
                 <p>Each payment now adds {fruitYoungPoints(life.cropMonth) / 100} points. Earlier payments keep their value.</p>
                 <p>Regular growth arrives every third crop month. The bonus resolves after period month 6 ends, then slots reset.</p>
