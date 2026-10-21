@@ -1,5 +1,5 @@
 import { advanceYoungTrack, developmentProgress, prepareLongTermPreparation, prepareYoungMaintenance, succeeds, youngBonusChance, youngPaymentWeight, youngPeriodMonth, type RandomSource, maintenanceChance, maintenanceWeightTotal, productionProgressAfterAdvance } from "./long-term-crop-functions";
-import { COCONUT_CARD as card } from "./coconut-data";
+import { COCONUT_CARD as card } from "./long-term-crop-data";
 import type { CoconutAdult, CoconutCrop, CoconutYoung } from "./crop-types";
 import type { Currency } from "../types";
 

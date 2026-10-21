@@ -2,7 +2,7 @@
 
 import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
 
-import { FRUIT_CARD as card } from "@/game-data/crop/fruit-data";
+import { FRUIT_CARD as card } from "@/game-data/crop/long-term-crop-data";
 import { canCollectFruit, fruitBonusChance, fruitHighChance, fruitPeriodMonth, fruitYield, prepareFruitMaintenance, prepareFruitFullMaintenance, fruitYoungPoints } from "@/game-data/crop/fruit-functions";
 import { developmentProgress, maintenanceWeightTotal } from "@/game-data/crop/long-term-crop-functions";
 import { hasWholeGold } from "@/game-data/crop/crop-functions";

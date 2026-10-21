@@ -1,5 +1,5 @@
 import { advanceYoungTrack, prepareLongTermPreparation, prepareYoungMaintenance, succeeds, youngBonusChance, youngPaymentWeight, youngPeriodMonth, type RandomSource, maintenanceChance, productionProgressAfterAdvance } from "./long-term-crop-functions";
-import { FRUIT_CARD as card } from "./fruit-data";
+import { FRUIT_CARD as card } from "./long-term-crop-data";
 import type { FruitAdult, FruitCrop, FruitYoung } from "./crop-types";
 import type { Currency } from "../types";
 

@@ -1,4 +1,4 @@
-import { COCONUT_CARD } from "./coconut-data";
+import { COCONUT_CARD } from "./long-term-crop-data";
 import { describe, expect, it, vi } from "vitest";
 import { createCrop } from "./crop-functions";
 import type { CoconutAdult, CoconutCrop, CoconutYoung } from "./crop-types";

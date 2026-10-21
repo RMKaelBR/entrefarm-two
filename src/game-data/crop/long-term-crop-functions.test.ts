@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { COCONUT_CARD } from "./coconut-data";
-import { FRUIT_CARD } from "./fruit-data";
+import { COCONUT_CARD, FRUIT_CARD, LONG_TERM_RULES } from "./long-term-crop-data";
 import { createCrop } from "./crop-functions";
-import { LONG_TERM_RULES } from "./long-term-crop-data";
 import { advanceYoungTrack, newLongTermYoung, prepareLongTermPreparation, prepareYoungMaintenance } from "./long-term-crop-functions";
 
 describe("shared long-term development", () => {

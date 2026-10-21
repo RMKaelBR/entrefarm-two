@@ -2,7 +2,7 @@
 
 import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
 
-import { COCONUT_CARD as card } from "@/game-data/crop/coconut-data";
+import { COCONUT_CARD as card } from "@/game-data/crop/long-term-crop-data";
 import { adultHighChance, adultProgress, bonusChance, canCollectCoconut, coconutYield, paymentPoints,
     periodMonth, pointTotal, prepareCoconutFullMaintenance, youngProgress } from "@/game-data/crop/coconut-functions";
 import { hasWholeGold } from "@/game-data/crop/crop-functions";
