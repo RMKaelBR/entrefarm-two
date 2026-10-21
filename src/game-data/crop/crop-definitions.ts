@@ -1,5 +1,4 @@
-import { FRUIT_CARD } from "./fruit-data";
-import { COCONUT_CARD } from "./coconut-data";
+import { COCONUT_CARD, FRUIT_CARD } from "./long-term-crop-data";
 import type { CropKind } from "./crop-types";
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";

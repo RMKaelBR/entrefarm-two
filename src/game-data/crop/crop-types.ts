@@ -1,5 +1,5 @@
 import type { Land } from "../land/land-types";
-import type { TokenTrack } from "../types";
+import type { Currency, TokenTrack } from "../types";
 
 export type CashCropKind = "rice" | "corn";
 export type LongTermCropKind = "coconut" | "fruit";
@@ -43,21 +43,47 @@ export type ProduceToken = {
   crop: CropKind;
 };
 
+// Shared funding API covers cash-crop and long-term development.
 export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask;
 export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask;
 
-export type CoconutDevelopmentTask = "siteClearing" | "hauling" | "planting";
+export type LongTermDevelopmentTask = "siteClearing" | "seedlingHauling" | "planting";
+export type LongTermPreparation = {
+  phase: "development";
+  development: Record<LongTermDevelopmentTask, boolean>;
+};
+export type LongTermCropDefinition = {
+  seedlingCost: Currency;
+  developmentCosts: Record<LongTermDevelopmentTask, Currency>;
+  developmentTokens: number;
+  developmentMaintenanceSlots: number;
+  developmentMaintenancePeriodMonths: number;
+  monthsPerGrowthToken: number;
+  maintenanceCost: Currency;
+  productionTokens: number;
+  productionMaintenanceSlots: number;
+  readonly productionCycleMonths: number;
+};
+export type CoconutDevelopmentTask = LongTermDevelopmentTask;
 export type CoconutProductionTask = "climbingPiling" | "husking" | "hauling";
-export type CoconutYoung = {
+export type MaintenanceWeight = 100 | 90 | 75 | 50 | 25;
+export type MaintenancePayment<W extends MaintenanceWeight = MaintenanceWeight> = {
+  // Young: crop month; adult: production cycle month.
+  month: number;
+  weightHundredths: W;
+};
+export type LongTermDevelopmentTrack = {
   phase: "young";
   cropMonth: number;
   regularTokens: number;
   bonusTokens: number;
-  payments: { cropMonth: number; pointHundredths: 100 | 90 | 75 }[];
+  payments: MaintenancePayment<100 | 90 | 75>[];
 };
+export type CoconutYoung = LongTermDevelopmentTrack;
 export type CoconutAdult = {
   phase: "adult";
-  fmPaidMonth: 1 | 2 | null;
+  progress: number;
+  payments: MaintenancePayment<100 | 75>[];
   production: Record<CoconutProductionTask, boolean>;
   lastHarvest: { outcome: "collected" | "lost"; quantity: number } | null;
 } & (
@@ -73,24 +99,18 @@ export type CoconutCrop = {
   startedMonth: number;
   purchasing: { seedlingPaid: true };
   lifecycle:
-    | { phase: "preparation"; development: Record<CoconutDevelopmentTask, boolean> }
+    | LongTermPreparation
     | CoconutYoung
     | CoconutAdult;
 };
 
-export type FruitDevelopmentTask = "siteClearing" | "hauling" | "planting";
+export type FruitDevelopmentTask = LongTermDevelopmentTask;
 export type FruitProductionTask = "harvesting" | "hauling";
-export type FruitYoung = {
-  phase: "young";
-  cropMonth: number;
-  regularTokens: number;
-  bonusTokens: number;
-  payments: { cropMonth: number; pointHundredths: 100 | 90 | 75 }[];
-};
+export type FruitYoung = LongTermDevelopmentTrack;
 export type FruitAdult = {
   phase: "adult";
   progress: number;
-  payments: { cycleMonth: number; weight: 100 | 75 | 50 | 25 }[];
+  payments: MaintenancePayment<100 | 75 | 50 | 25>[];
   production: Record<FruitProductionTask, boolean>;
   lastHarvest: { outcome: "collected" | "lost"; quantity: number } | null;
 } & (
@@ -106,7 +126,7 @@ export type FruitCrop = {
   startedMonth: number;
   purchasing: { seedlingPaid: true };
   lifecycle:
-    | { phase: "preparation"; development: Record<FruitDevelopmentTask, boolean> }
+    | LongTermPreparation
     | FruitYoung
     | FruitAdult;
 };

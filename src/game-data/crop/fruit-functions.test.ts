@@ -1,19 +1,46 @@
 import { describe, expect, it, vi } from "vitest";
 import { createCrop } from "./crop-functions";
 import type { FruitAdult, FruitCrop, FruitYoung } from "./crop-types";
-import { canCollectFruit, collectFruitCycle, fruitAdultWeight, fruitBonusChance, fruitHighChance, fruitYoungPoints, fruitYield, matureFruitIfReady, newFruitAdultCycle, prepareFruitDevelopment, prepareFruitMaintenance, prepareFruitProduction, tickFruit, tickFruitAdult, tickFruitYoung } from "./fruit-functions";
+import { canCollectFruit, collectFruitCycle, fruitAdultWeight, fruitBonusChance, fruitHighChance, fruitYoungPoints, fruitYield, matureFruitIfReady, newFruitAdultCycle, prepareFruitPreparation, prepareFruitMaintenance, prepareFruitProduction, tickFruit, tickFruitAdult, tickFruitYoung } from "./fruit-functions";
 const young = (cropMonth = 1): FruitYoung => ({ phase: "young", cropMonth, regularTokens: 0, bonusTokens: 0, payments: [] });
 const crop = (lifecycle: FruitCrop["lifecycle"]): FruitCrop => ({ ...createCrop("fruit", "land", 1, 1), lifecycle });
 const ready = (yieldResult: "high" | "low" = "high", readyAge: 0 | 1 = 0): FruitAdult => ({ ...newFruitAdultCycle(), stage: "ready", cycleMonth: 12, progress: 4, yieldResult, readyAge });
 
 describe("fruit rules", () => {
-  it("keeps preparation frozen and starts young month one only on final payment", () => {
+  it("keeps period payments on arrival at six and settles them on departure", () => {
+    const random = vi.fn();
+    const monthFive: FruitYoung = {
+      phase: "young", cropMonth: 5, regularTokens: 1, bonusTokens: 0,
+      payments: Array.from({ length: 15 }, () => ({ month: 1, weightHundredths: 100 })),
+    };
+    const monthSix = tickFruitYoung(monthFive, random);
+    expect(monthSix).toEqual({ ...monthFive, cropMonth: 6, regularTokens: 2 });
+    if (monthSix.phase !== "young") throw new Error("Expected young");
+    expect(tickFruitYoung(monthSix, random)).toMatchObject({
+      cropMonth: 7, regularTokens: 2, bonusTokens: 1, payments: [],
+    });
+    expect(random).not.toHaveBeenCalled();
+  });
+  it("advances production on arrival at each third month", () => {
+    const random = vi.fn();
+    let adult = newFruitAdultCycle();
+    expect(adult.progress).toBe(0);
+    for (let month = 2; month <= 12; month++) {
+      adult = tickFruitAdult(adult, random);
+      expect(adult).toMatchObject({
+        cycleMonth: month, progress: Math.floor(month / 3),
+        stage: month === 12 ? "ready" : "growing",
+      });
+    }
+    expect(random).not.toHaveBeenCalled();
+  });
+  it("keeps development frozen and starts young month one only on final payment", () => {
     let tree = createCrop("fruit", "land", 1, 1);
     const random = vi.fn();
-    for (const task of ["siteClearing", "hauling", "planting"]) {
+    for (const task of ["siteClearing", "seedlingHauling", "planting"]) {
       expect(tickFruit(tree, random)).toBe(tree);
-      tree = prepareFruitDevelopment(tree, task)!.crop;
-      expect(prepareFruitDevelopment(tree, task)).toBeNull();
+      tree = prepareFruitPreparation(tree, task)!.crop;
+      expect(prepareFruitPreparation(tree, task)).toBeNull();
     }
     expect(tree.lifecycle).toEqual(young());
     expect(random).not.toHaveBeenCalled();
@@ -48,7 +75,7 @@ describe("fruit rules", () => {
     expect(random).not.toHaveBeenCalled();
   });
   it.each([20,21])("carries total %i and discards young care", (total) => {
-    expect(matureFruitIfReady({ ...young(6), regularTokens: total, payments: [{ cropMonth: 1, pointHundredths: 100 }] })).toEqual(newFruitAdultCycle(total - 20));
+    expect(matureFruitIfReady({ ...young(6), regularTokens: total, payments: [{ month: 1, weightHundredths: 100 }] })).toEqual(newFruitAdultCycle(total - 20));
   });
   it.each([[1,100],[3,100],[4,75],[6,75],[7,50],[9,50],[10,25],[11,25]])("weights adult month %i", (month, weight) => expect(fruitAdultWeight(month)).toBe(weight));
   it.each([[0,12],[1,9],[2,6],[3,3]])("readies carry %i at month %i and closes maintenance", (carry, month) => {
@@ -69,7 +96,7 @@ describe("fruit rules", () => {
     }
     if (tree.lifecycle.phase !== "adult") throw new Error("adult");
     expect(fruitHighChance(tree.lifecycle)).toBe(.75);
-    expect(tree.lifecycle.payments).toEqual([{ cycleMonth: 2, weight: 100 }, { cycleMonth: 5, weight: 75 }, { cycleMonth: 8, weight: 50 }]);
+    expect(tree.lifecycle.payments).toEqual([{ month: 2, weightHundredths: 100 }, { month: 5, weightHundredths: 75 }, { month: 8, weightHundredths: 50 }]);
     expect(tree.lifecycle).toMatchObject({ yieldResult: "high" });
     fruitYield(tree.lifecycle); prepareFruitProduction(tree, "harvesting"); tickFruit(tree, random);
     expect(random).toHaveBeenCalledTimes(1);
@@ -114,7 +141,7 @@ describe("fruit rules", () => {
   });
   it("rejects invalid keys and ineligible payments", () => {
     for (const task of ["toString", "__proto__", "unknown"]) {
-      expect(prepareFruitDevelopment(createCrop("fruit", "p", 1, 1), task)).toBeNull();
+      expect(prepareFruitPreparation(createCrop("fruit", "p", 1, 1), task)).toBeNull();
       expect(prepareFruitProduction(crop(ready()), task)).toBeNull();
     }
     expect(prepareFruitMaintenance(createCrop("fruit", "p", 1, 1))).toBeNull();

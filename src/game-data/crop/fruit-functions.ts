@@ -1,30 +1,20 @@
-import { FRUIT_CARD as card } from "./fruit-data";
+import { advanceYoungTrack, prepareLongTermPreparation, prepareYoungMaintenance, succeeds, youngBonusChance, youngPaymentWeight, youngPeriodMonth, type RandomSource, maintenanceChance, productionProgressAfterAdvance } from "./long-term-crop-functions";
+import { FRUIT_CARD as card } from "./long-term-crop-data";
 import type { FruitAdult, FruitCrop, FruitYoung } from "./crop-types";
 import type { Currency } from "../types";
 
-type RandomSource = () => number;
 type FruitPayment = { crop: FruitCrop; cost: Currency };
 
-export const fruitPeriodMonth = (month: number) =>
-  ((month - 1) % card.periodMonths) + 1;
-
-export function fruitYoungPoints(month: number): 100 | 90 | 75 {
-  const relative = fruitPeriodMonth(month);
-  return relative <= 2 ? 100 : relative <= 4 ? 90 : 75;
-}
+export const fruitPeriodMonth = youngPeriodMonth;
+export const fruitYoungPoints = youngPaymentWeight;
 export const fruitBonusChance = (young: FruitYoung) =>
-  young.payments.reduce((sum, p) => sum + p.pointHundredths, 0)
-    / (card.youngMaintenanceSlots * 100);
+  youngBonusChance(young, card.developmentMaintenanceSlots);
 
 export function fruitAdultWeight(month: number): 100 | 75 | 50 | 25 {
   return month <= 3 ? 100 : month <= 6 ? 75 : month <= 9 ? 50 : 25;
 }
 export const fruitHighChance = (adult: FruitAdult) =>
-  adult.payments.reduce((sum, p) => sum + p.weight, 0)
-    / (card.adultMaintenanceSlots * 100);
-
-const succeeds = (chance: number, random: RandomSource) =>
-  chance >= 1 || (chance > 0 && random() < chance);
+  maintenanceChance(adult.payments, card.productionMaintenanceSlots);
 
 export function newFruitAdultCycle(
   progress = 0,
@@ -41,43 +31,35 @@ const owns = <T extends object>(object: T, key: unknown):
   key is Extract<keyof T, string> =>
   typeof key === "string" && Object.prototype.hasOwnProperty.call(object, key);
 
-export function prepareFruitDevelopment(
+export function prepareFruitPreparation(
   crop: FruitCrop, task: unknown,
 ): FruitPayment | null {
   const life = crop.lifecycle;
-  if (life.phase !== "preparation" || !owns(card.developmentCosts, task)
-    || life.development[task]) return null;
-  const development = { ...life.development, [task]: true };
-  return {
-    cost: card.developmentCosts[task],
-    crop: { ...crop, lifecycle: Object.values(development).every(Boolean)
-      ? { phase: "young", cropMonth: 1, regularTokens: 0,
-          bonusTokens: 0, payments: [] }
-      : { ...life, development } },
-  };
+  if (life.phase !== "development") return null;
+  const payment = prepareLongTermPreparation(life, card.developmentCosts, task);
+  return payment ? { cost: payment.cost, crop: { ...crop, lifecycle: payment.state } } : null;
 }
 
 export function prepareFruitMaintenance(crop: FruitCrop): FruitPayment | null {
   const life = crop.lifecycle;
-  if (life.phase === "preparation") return null;
+  if (life.phase === "development") return null;
   if (life.phase === "young") {
-    if (life.payments.length >= card.youngMaintenanceSlots) return null;
-    return { cost: card.maintenanceCost, crop: { ...crop, lifecycle: {
-      ...life, payments: [...life.payments, {
-        cropMonth: life.cropMonth,
-        pointHundredths: fruitYoungPoints(life.cropMonth),
-      }],
-    } } };
+    const payment = prepareYoungMaintenance(life, card.developmentMaintenanceSlots);
+    return payment ? { cost: payment.cost, crop: { ...crop, lifecycle: payment.state } } : null;
   }
   if (life.stage !== "growing" || life.cycleMonth > 11
-    || life.payments.length >= card.adultMaintenanceSlots) return null;
+    || life.payments.length >= card.productionMaintenanceSlots) return null;
   return { cost: card.maintenanceCost, crop: { ...crop, lifecycle: {
     ...life, payments: [...life.payments, {
-      cycleMonth: life.cycleMonth, weight: fruitAdultWeight(life.cycleMonth),
+      month: life.cycleMonth, weightHundredths: fruitAdultWeight(life.cycleMonth),
     }],
   } } };
 }
 export function prepareFruitFullMaintenance(crop: FruitCrop): FruitPayment | null {
+  if (crop.lifecycle.phase === "young") {
+    const payment = prepareYoungMaintenance(crop.lifecycle, card.developmentMaintenanceSlots, "all");
+    return payment ? { cost: payment.cost, crop: { ...crop, lifecycle: payment.state } } : null;
+  }
   let payment = prepareFruitMaintenance(crop);
   if (!payment) return null;
   let funded = payment.crop;
@@ -92,27 +74,17 @@ export function prepareFruitFullMaintenance(crop: FruitCrop): FruitPayment | nul
 
 export function matureFruitIfReady(young: FruitYoung): FruitYoung | FruitAdult {
   const total = young.regularTokens + young.bonusTokens;
-  return total < card.youngTokens
+  return total < card.developmentTokens
     ? young
-    : newFruitAdultCycle(total - card.youngTokens);
+    : newFruitAdultCycle(total - card.developmentTokens);
 }
 
 export function tickFruitYoung(
   young: FruitYoung, random: RandomSource,
 ): FruitYoung | FruitAdult {
-  let next: FruitYoung = { ...young, cropMonth: young.cropMonth + 1 };
-  if (young.cropMonth % card.periodMonths === 0) {
-    next = {
-      ...next,
-      bonusTokens: next.bonusTokens
-        + (succeeds(fruitBonusChance(young), random) ? 1 : 0),
-      payments: [],
-    };
-  }
-  if (next.cropMonth % card.regularTokenMonths === 0) {
-    next = { ...next, regularTokens: next.regularTokens + 1 };
-  }
-  return matureFruitIfReady(next);
+  return matureFruitIfReady(
+    advanceYoungTrack(young, card.developmentMaintenanceSlots, random),
+  );
 }
 
 export function tickFruitAdult(adult: FruitAdult, random: RandomSource): FruitAdult {
@@ -123,9 +95,10 @@ export function tickFruitAdult(adult: FruitAdult, random: RandomSource): FruitAd
       : newFruitAdultCycle(0, { outcome: "lost", quantity: 0 });
   }
   const cycleMonth = adult.cycleMonth + 1;
-  const progress = Math.min(card.adultTokens, adult.progress
-    + (cycleMonth % card.regularTokenMonths === 0 ? 1 : 0));
-  if (progress < card.adultTokens) return { ...adult, cycleMonth, progress };
+  const progress = productionProgressAfterAdvance(
+    adult.progress, cycleMonth, card.productionTokens, card.monthsPerGrowthToken,
+  );
+  if (progress < card.productionTokens) return { ...adult, cycleMonth, progress };
   return {
     ...adult, stage: "ready", cycleMonth, progress, readyAge: 0,
     yieldResult: succeeds(fruitHighChance(adult), random) ? "high" : "low",
@@ -148,7 +121,7 @@ export function collectFruitCycle(quantity: number): FruitAdult {
 
 export function tickFruit(crop: FruitCrop, random: RandomSource): FruitCrop {
   const life = crop.lifecycle;
-  if (life.phase === "preparation") return crop;
+  if (life.phase === "development") return crop;
   return { ...crop, lifecycle: life.phase === "young"
     ? tickFruitYoung(life, random) : tickFruitAdult(life, random) };
 }

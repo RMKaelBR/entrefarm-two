@@ -1,26 +1,41 @@
+import { COCONUT_CARD } from "./long-term-crop-data";
 import { describe, expect, it, vi } from "vitest";
 import { createCrop } from "./crop-functions";
 import type { CoconutAdult, CoconutCrop, CoconutYoung } from "./crop-types";
 import { adultProgress, bonusChance, canCollectCoconut, coconutYield, matureIfReady, newAdultCycle,
-  paymentPoints, pointTotal, prepareCoconutDevelopment, prepareCoconutMaintenance, prepareCoconutProduction,
+  paymentPoints, pointTotal, prepareCoconutPreparation, prepareCoconutMaintenance, prepareCoconutProduction,
   finishAdultCycle, tickAdult, tickCoconut, tickYoung, youngProgress } from "./coconut-functions";
 
 const young = (patch: Partial<CoconutYoung> = {}): CoconutYoung => ({ phase: "young", cropMonth: 1, regularTokens: 0, bonusTokens: 0, payments: [], ...patch });
 const ready = (yieldResult: "high" | "low" = "high", readyAge: 0 | 1 | 2 = 0): CoconutAdult =>
-  ({ ...newAdultCycle(), stage: "ready", cycleMonth: 3, yieldResult, readyAge, fromOverflow: false });
+  ({ ...newAdultCycle(), stage: "ready", cycleMonth: 3, progress: 1, yieldResult, readyAge, fromOverflow: false });
 const crop = (lifecycle: CoconutCrop["lifecycle"]): CoconutCrop => ({ ...createCrop("coconut", "p", 1, 1), lifecycle });
 
-describe("coconut preparation and young growth", () => {
-  it("freezes preparation and starts month one only after all costs", () => {
+describe("coconut development and young growth", () => {
+  it("keeps period payments on arrival at six and settles them on departure", () => {
+    const random = vi.fn();
+    const monthFive: CoconutYoung = {
+      phase: "young", cropMonth: 5, regularTokens: 1, bonusTokens: 0,
+      payments: Array.from({ length: 8 }, () => ({ month: 1, weightHundredths: 100 })),
+    };
+    const monthSix = tickYoung(monthFive, random);
+    expect(monthSix).toEqual({ ...monthFive, cropMonth: 6, regularTokens: 2 });
+    if (monthSix.phase !== "young") throw new Error("Expected young");
+    expect(tickYoung(monthSix, random)).toMatchObject({
+      cropMonth: 7, regularTokens: 2, bonusTokens: 1, payments: [],
+    });
+    expect(random).not.toHaveBeenCalled();
+  });
+  it("freezes development and starts month one only after all costs", () => {
     let tree = createCrop("coconut", "p", 1, 1);
     const random = vi.fn();
     expect(tickCoconut(tree, random)).toBe(tree);
     expect(prepareCoconutMaintenance(tree)).toBeNull();
-    for (const task of ["siteClearing", "hauling", "planting"] as const) {
-      const proposal = prepareCoconutDevelopment(tree, task)!;
+    for (const task of ["siteClearing", "seedlingHauling", "planting"] as const) {
+      const proposal = prepareCoconutPreparation(tree, task)!;
       expect(proposal.cost).toEqual({ gold: 1, silver: 0 });
       tree = proposal.crop;
-      expect(prepareCoconutDevelopment(tree, task)).toBeNull();
+      expect(prepareCoconutPreparation(tree, task)).toBeNull();
     }
     expect(tree.lifecycle).toEqual(young());
     expect(random).not.toHaveBeenCalled();
@@ -45,7 +60,7 @@ describe("coconut preparation and young growth", () => {
       tree = prepareCoconutMaintenance({ ...tree, lifecycle: { ...tree.lifecycle, cropMonth: month } })!.crop;
     }
     if (tree.lifecycle.phase !== "young") throw new Error("Expected young");
-    expect(tree.lifecycle.payments.map((p) => p.pointHundredths)).toEqual([100, 100, 90, 90, 75, 75, 75, 75]);
+    expect(tree.lifecycle.payments.map((p) => p.weightHundredths)).toEqual([100, 100, 90, 90, 75, 75, 75, 75]);
     expect(pointTotal(tree.lifecycle)).toBe(680);
     expect(bonusChance(tree.lifecycle)).toBe(0.85);
     expect(prepareCoconutMaintenance(tree)).toBeNull();
@@ -53,7 +68,7 @@ describe("coconut preparation and young growth", () => {
   it.each([[0.749999, 1], [0.75, 0]])("includes month-six funding and rolls once at %f", (roll, bonus) => {
     const random = vi.fn(() => roll);
     const next = tickYoung(young({ cropMonth: 6, regularTokens: 2,
-      payments: Array.from({ length: 8 }, () => ({ cropMonth: 6, pointHundredths: 75 })) }), random);
+      payments: Array.from({ length: 8 }, () => ({ month: 6, weightHundredths: 75 })) }), random);
     expect(next).toMatchObject({ cropMonth: 7, bonusTokens: bonus, regularTokens: 2, payments: [] });
     expect(random).toHaveBeenCalledTimes(1);
     if (next.phase !== "young") throw new Error("Expected young");
@@ -62,13 +77,13 @@ describe("coconut preparation and young growth", () => {
   });
   it("guarantees eight early points without randomness and reopens slots", () => {
     const random = vi.fn();
-    const next = tickYoung(young({ cropMonth: 6, payments: Array.from({ length: 8 }, () => ({ cropMonth: 1, pointHundredths: 100 })) }), random);
+    const next = tickYoung(young({ cropMonth: 6, payments: Array.from({ length: 8 }, () => ({ month: 1, weightHundredths: 100 })) }), random);
     expect(next).toMatchObject({ cropMonth: 7, bonusTokens: 1, payments: [] });
     expect(prepareCoconutMaintenance(crop(next))).not.toBeNull();
     expect(random).not.toHaveBeenCalled();
   });
   it("matures at 32 without double ticking or transferring maintenance", () => {
-    const tree = crop(young({ cropMonth: 95, regularTokens: 31, payments: [{ cropMonth: 95, pointHundredths: 75 }] }));
+    const tree = crop(young({ cropMonth: 95, regularTokens: 31, payments: [{ month: 95, weightHundredths: 75 }] }));
     const next = tickCoconut(tree, vi.fn());
     expect(next).toEqual({ ...tree, lifecycle: newAdultCycle() });
     expect(adultProgress(newAdultCycle())).toBe(0);
@@ -77,7 +92,7 @@ describe("coconut preparation and young growth", () => {
     const source = young({ regularTokens: 32, bonusTokens: 5 });
     expect(youngProgress(source)).toBe(32);
     const life = matureIfReady(source);
-    expect(life).toMatchObject({ stage: "ready", readyAge: 0, fromOverflow: true, yieldResult: "low", fmPaidMonth: null });
+    expect(life).toMatchObject({ stage: "ready", readyAge: 0, fromOverflow: true, yieldResult: "low", payments: [] });
     if (life.phase !== "adult") throw new Error("Expected adult");
     expect(adultProgress(life)).toBe(1);
     expect(canCollectCoconut(life)).toBe(false);
@@ -86,10 +101,26 @@ describe("coconut preparation and young growth", () => {
 });
 
 describe("adult coconut cycles", () => {
-  it.each([[null, 0, "low", 0], [1, 0.99, "high", 0], [2, 0.749999, "high", 1], [2, 0.75, "low", 1]] as const)("resolves funding %s with roll %f", (fmPaidMonth, roll, result, calls) => {
+  it("retains the configured month-two funding probability", () => {
+    const proposal = prepareCoconutMaintenance(crop({ ...newAdultCycle(), stage: "growing", cycleMonth: 2 }));
+    if (!proposal || proposal.crop.lifecycle.phase !== "adult") throw new Error("Expected adult payment");
+    expect(proposal.crop.lifecycle.payments[0].weightHundredths / 100).toBe(COCONUT_CARD.monthTwoChance);
+  });
+  it("reaches readiness after two advances from month one", () => {
+    const random = vi.fn(() => 0.5);
+    const monthOne = newAdultCycle();
+    expect(monthOne.progress).toBe(0);
+    const monthTwo = tickAdult(monthOne, random);
+    expect(monthTwo).toMatchObject({ stage: "growing", cycleMonth: 2, progress: 0 });
+    expect(tickAdult(monthTwo, random)).toMatchObject({
+      stage: "ready", cycleMonth: 3, progress: 1, yieldResult: "low", fromOverflow: false,
+    });
+    expect(random).not.toHaveBeenCalled();
+  });
+  it.each([[null, 0, "low", 0], [1, 0.99, "high", 0], [2, 0.749999, "high", 1], [2, 0.75, "low", 1]] as const)("resolves funding %s with roll %f", (paidMonth, roll, result, calls) => {
     const random = vi.fn(() => roll);
-    const monthTwo = tickAdult({ ...newAdultCycle(), fmPaidMonth }, random);
-    expect(monthTwo).toMatchObject({ stage: "growing", cycleMonth: 2 });
+    const monthTwo = tickAdult({ ...newAdultCycle(), payments: paidMonth === null ? [] : [{ month: paidMonth, weightHundredths: paidMonth === 1 ? 100 : 75 }] }, random);
+    expect(monthTwo).toMatchObject({ stage: "growing", cycleMonth: 2, progress: 0 });
     const harvest = tickAdult(monthTwo, random);
     expect(harvest).toMatchObject({ stage: "ready", readyAge: 0, yieldResult: result });
     coconutYield(harvest); canCollectCoconut(harvest);
@@ -112,7 +143,7 @@ describe("adult coconut cycles", () => {
   it.each(["collected", "lost"] as const)("starts an unfunded cycle on the next advance after %s", (outcome) => {
     const quantity = outcome === "lost" ? 0 : 3;
     const resting = finishAdultCycle(outcome, quantity);
-    expect(resting).toEqual({ phase: "adult", stage: "resting", fmPaidMonth: null,
+    expect(resting).toEqual({ phase: "adult", stage: "resting", progress: 0, payments: [],
       production: { climbingPiling: false, husking: false, hauling: false }, lastHarvest: { outcome, quantity } });
     expect(adultProgress(resting)).toBe(0);
     expect(coconutYield(resting)).toBe(0);
@@ -123,18 +154,18 @@ describe("adult coconut cycles", () => {
     const monthOne = tickAdult(resting, random);
     expect(monthOne).toEqual({ ...newAdultCycle(), lastHarvest: { outcome, quantity } });
     const monthTwo = tickAdult(monthOne, random);
-    expect(monthTwo).toMatchObject({ stage: "growing", cycleMonth: 2 });
-    expect(tickAdult(monthTwo, random)).toMatchObject({ stage: "ready", cycleMonth: 3, yieldResult: "low" });
+    expect(monthTwo).toMatchObject({ stage: "growing", cycleMonth: 2, progress: 0 });
+    expect(tickAdult(monthTwo, random)).toMatchObject({ stage: "ready", cycleMonth: 3, progress: 1, yieldResult: "low" });
     expect(random).not.toHaveBeenCalled();
   });
   it("rejects invalid, inherited, duplicate, wrong-phase, and waived tasks", () => {
     for (const task of ["toString", "__proto__", "constructor", "unknown", null]) {
-      expect(prepareCoconutDevelopment(createCrop("coconut", "p", 1, 1), task)).toBeNull();
+      expect(prepareCoconutPreparation(createCrop("coconut", "p", 1, 1), task)).toBeNull();
       expect(prepareCoconutProduction(crop(ready()), task)).toBeNull();
     }
     expect(prepareCoconutProduction(crop(young()), "husking")).toBeNull();
     expect(prepareCoconutProduction(crop(newAdultCycle()), "husking")).toBeNull();
-    expect(prepareCoconutDevelopment(crop(ready()), "planting")).toBeNull();
+    expect(prepareCoconutPreparation(crop(ready()), "planting")).toBeNull();
     for (const life of [newAdultCycle(), tickAdult(newAdultCycle(), vi.fn())]) {
       const paid = prepareCoconutMaintenance(crop(life))!.crop;
       expect(prepareCoconutMaintenance(paid)).toBeNull();
