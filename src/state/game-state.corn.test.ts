@@ -191,12 +191,12 @@ describe("corn harvest and independent time", () => {
     develop(id);
     state().advanceWorldTime();
     expect(state().crops.map((crop) => {
-      if ((crop.kind === "coconut" || crop.kind === "fruit")) throw new Error("Expected cash crop");
+      if ((crop.kind !== "rice" && crop.kind !== "corn")) throw new Error("Expected cash crop");
       return getCashCropStage(crop);
     })).toEqual(["harvest", "maintenance"]);
     state().advanceWorldTime();
     expect(state().crops.map((crop) => {
-      if ((crop.kind === "coconut" || crop.kind === "fruit")) throw new Error("Expected cash crop");
+      if ((crop.kind !== "rice" && crop.kind !== "corn")) throw new Error("Expected cash crop");
       return getCashCropStage(crop);
     })).toEqual(["harvest", "harvest"]);
     const matureRice = state().crops[0];
@@ -279,7 +279,9 @@ describe("shared transaction boundaries", () => {
       useGameStore.setState({ wallet: { gold: cost - 1, silver: 9 } });
       rejected(() => state().fundCropProduction(id, task));
       useGameStore.setState({ wallet: { gold: cost, silver: 9 } });
+      const inventory = state().produceInventory;
       expect(state().fundCropProduction(id, task)).toBe(true);
+      expect(state().produceInventory).toBe(inventory);
       expect(state().wallet).toEqual({ gold: 0, silver: 9 });
       rejected(() => state().fundCropProduction(id, task));
     }

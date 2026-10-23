@@ -1,7 +1,7 @@
 import { gold } from "../money/calculate-money";
 import type { Currency } from "../types";
 import type {
-  CoconutDevelopmentTask, CoconutProductionTask,
+  CoconutDevelopmentTask, CoconutProductionTask, RubberDevelopmentTask, RubberProductionTask,
   FruitDevelopmentTask, FruitProductionTask, LongTermCropDefinition,
 } from "./crop-types";
 
@@ -50,4 +50,20 @@ export const FRUIT_CARD = defineLongTermCrop({
   } satisfies Record<FruitProductionTask, Currency>,
   readyYield: { high: 12, low: 8 },
   overripeYield: { high: 3, low: 2 },
+});
+
+export const RUBBER_CARD = defineLongTermCrop({
+  seedlingCost: gold(2),
+  developmentCosts: {
+    siteClearing: gold(1), seedlingHauling: gold(1), planting: gold(1),
+  } satisfies Record<RubberDevelopmentTask, Currency>,
+  developmentTokens: 16,
+  developmentMaintenanceSlots: 15,
+  productionTokens: 1,
+  productionMaintenanceSlots: 1,
+  productionCosts: {
+    tapping: gold(1), hauling: gold(1),
+  } satisfies Record<RubberProductionTask, Currency>,
+  readyYield: { high: 3, low: 2 },
+  lateYield: 1,
 });

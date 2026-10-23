@@ -1,3 +1,4 @@
+import { newRubberAdultCycle } from "./rubber-functions";
 import { describe, expect, it } from "vitest";
 import { clearLand, irrigateLand, createLand } from "../land/land-functions";
 import { RICE_CARD } from "./cash-crop-data";
@@ -25,7 +26,7 @@ import {
 import type { CropPlantingRecord, Crop } from "./crop-types";
 
 function cash(crop: Crop) {
-  if ((crop.kind === "coconut" || crop.kind === "fruit")) throw new Error("Expected cash crop");
+  if ((crop.kind !== "rice" && crop.kind !== "corn")) throw new Error("Expected cash crop");
   return crop;
 }
 
@@ -188,7 +189,7 @@ describe("rice lowland and snapshot boundaries", () => {
 
 describe("registered placement rules", () => {
   it("recognizes only implemented crop kinds", () => {
-    for (const kind of ["rice", "corn", "coconut", "fruit"]) expect(isCropKind(kind)).toBe(true);
+    for (const kind of ["rice", "corn", "coconut", "fruit", "rubber"]) expect(isCropKind(kind)).toBe(true);
     for (const value of ["toString", "__proto__", "unknown", "", null, undefined, {}]) {
       expect(isCropKind(value)).toBe(false);
     }
@@ -203,4 +204,18 @@ describe("registered placement rules", () => {
       }
     }
   });
+});
+
+it("routes rubber production through shared preparation", () => {
+  const crop = createCrop("rubber", "parcel", 1, 1);
+  crop.lifecycle = { ...newRubberAdultCycle(), stage: "ready", cycleMonth: 3,
+    progress: 1, yieldResult: "high" };
+  const tapped = prepareCropProduction(crop, "tapping");
+  if (!tapped) throw new Error("Expected tapping payment");
+  expect(tapped.collectedProduce).toBeUndefined();
+  expect(tapped.crop).toMatchObject({ lifecycle: { batch: { quantity: 3 } } });
+  const hauled = prepareCropProduction(tapped.crop, "hauling");
+  expect(hauled).toMatchObject({ collectedProduce: { kind: "rubber", quantity: 3 },
+    crop: { lifecycle: { batch: null } } });
+  expect(prepareCropProduction(crop, "harvesting")).toBeNull();
 });

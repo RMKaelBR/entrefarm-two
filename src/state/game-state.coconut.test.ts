@@ -222,7 +222,9 @@ describe("coconut store lifecycle", () => {
       useGameStore.setState({ wallet: { gold: cost - 1, silver: 9 } });
       rejected(() => state().fundCropProduction(id, task));
       useGameStore.setState({ wallet: { gold: cost, silver: 9 } });
+      const inventory = state().produceInventory;
       expect(state().fundCropProduction(id, task)).toBe(true);
+      expect(state().produceInventory).toBe(inventory);
       expect(state().wallet).toEqual({ gold: 0, silver: 9 });
       rejected(() => state().fundCropProduction(id, task));
     }
