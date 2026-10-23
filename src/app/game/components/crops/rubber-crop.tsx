@@ -17,8 +17,8 @@ export function RubberCropComponent({ crop }: { crop: RubberCrop }) {
     const wallet = useGameStore((s) => s.wallet);
     const develop = useGameStore((s) => s.fundCropDevelopment);
     const maintain = useGameStore((s) => s.fundCropMaintenance);
-    const fundAll = useGameStore((s) => s.fundAllRubberMaintenance);
-    const fundProduction = useGameStore((s) => s.fundCropProduction);
+    const produce = useGameStore((s) => s.fundCropProduction);
+    const fundAllMaintenance = useGameStore((s) => s.fundAllRubberMaintenance);
     const maintenance = prepareRubberMaintenance(crop);
     const fullMaintenance = prepareRubberFullMaintenance(crop);
     const hauling = prepareCropProduction(crop, "hauling");
@@ -27,7 +27,7 @@ export function RubberCropComponent({ crop }: { crop: RubberCrop }) {
         const payment = prepareCropProduction(crop, "tapping");
         return <Button label={`Tap rubber (${card.productionCosts.tapping.gold} Gold)`}
             disabled={!payment || !hasWholeGold(wallet, payment.cost)}
-            onClick={() => fundProduction(crop.id, "tapping")} />;
+            onClick={() => produce(crop.id, "tapping")} />;
     };
     return <section className="space-y-3 border bg-white p-4">
         <h3 className="font-semibold"><span aria-hidden="true">{CROP_DEFINITIONS.rubber.emoji}</span> Active Rubber Crop</h3>
@@ -74,14 +74,14 @@ export function RubberCropComponent({ crop }: { crop: RubberCrop }) {
                     {life.batch.advancesSinceTapping === 0 && <p>The next advance loses 1 rubber.</p>}
                     <Button label={`Haul rubber (${card.productionCosts.hauling.gold} Gold)`}
                         disabled={!hauling || !hasWholeGold(wallet, hauling.cost)}
-                        onClick={() => fundProduction(crop.id, "hauling")} />
+                        onClick={() => produce(crop.id, "hauling")} />
                 </div> : <p>No rubber awaiting hauling.</p>}
             </>}
             {(life.phase === "young" || life.stage === "growing") && <>
                 <Button label={`Fund ${life.phase === "young" ? "development" : "production"} maintenance (${card.maintenanceCost.gold} Gold)`}
                     disabled={!maintenance || !hasWholeGold(wallet, maintenance.cost)} onClick={() => maintain(crop.id)} />
                 <Button label={`Fund all maintenance (${fullMaintenance?.cost.gold ?? 0} Gold)`} className="ml-2"
-                    disabled={!fullMaintenance || !hasWholeGold(wallet, fullMaintenance.cost)} onClick={() => fundAll(crop.id)} />
+                    disabled={!fullMaintenance || !hasWholeGold(wallet, fullMaintenance.cost)} onClick={() => fundAllMaintenance(crop.id)} />
             </>}
         </>}
     </section>;
