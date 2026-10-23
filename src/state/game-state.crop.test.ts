@@ -419,6 +419,6 @@ describe("irrigated rice store actions", () => {
 });
 
 function cashCrop(crop: Crop) {
-  if ((crop.kind === "coconut" || crop.kind === "fruit")) throw new Error("Expected cash crop");
+  if ((crop.kind !== "rice" && crop.kind !== "corn")) throw new Error("Expected cash crop");
   return crop;
 }

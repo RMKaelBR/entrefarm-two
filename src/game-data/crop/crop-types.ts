@@ -2,7 +2,7 @@ import type { Land } from "../land/land-types";
 import type { Currency, TokenTrack } from "../types";
 
 export type CashCropKind = "rice" | "corn";
-export type LongTermCropKind = "coconut" | "fruit";
+export type LongTermCropKind = "coconut" | "fruit" | "rubber";
 export type CropKind = CashCropKind | LongTermCropKind;
 export type CashCropDevelopmentTask = "plowing" | "planting";
 export type RiceProductionTask = "harvesting" | "hauling" | "drying";
@@ -44,8 +44,17 @@ export type ProduceToken = {
 };
 
 // Shared funding API covers cash-crop and long-term development.
-export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask;
-export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask;
+export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask | RubberDevelopmentTask;
+export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask | RubberProductionTask;
+
+export type CropProductionPayment<TCrop extends Crop = Crop> = {
+  crop: TCrop;
+  cost: Currency;
+  collectedProduce?: {
+    kind: TCrop["kind"];
+    quantity: number;
+  };
+};
 
 export type LongTermDevelopmentTask = "siteClearing" | "seedlingHauling" | "planting";
 export type LongTermPreparation = {
@@ -131,4 +140,33 @@ export type FruitCrop = {
     | FruitAdult;
 };
 
-export type Crop = CashCrop | CoconutCrop | FruitCrop;
+export type RubberDevelopmentTask = LongTermDevelopmentTask;
+export type RubberProductionTask = "tapping" | "hauling";
+export type RubberYoung = LongTermDevelopmentTrack;
+export type RubberBatch = {
+  quantity: number;
+  advancesSinceTapping: 0 | 1;
+};
+export type RubberAdult = {
+  phase: "adult";
+  progress: number;
+  payments: MaintenancePayment<100 | 75>[];
+  previousCyclePenalty: boolean;
+  lateTappingAvailable: boolean;
+  batch: RubberBatch | null;
+} & (
+  | { stage: "growing"; cycleMonth: 1 | 2; tappedOnTime: false; fromOverflow: false }
+  | { stage: "ready"; cycleMonth: 3; tappedOnTime: boolean;
+      fromOverflow: boolean; yieldResult: "high" | "low" }
+);
+export type RubberCrop = {
+  kind: "rubber";
+  id: string;
+  landId: Land["id"];
+  startedYear: number;
+  startedMonth: number;
+  purchasing: { seedlingPaid: true };
+  lifecycle: LongTermPreparation | RubberYoung | RubberAdult;
+};
+
+export type Crop = CashCrop | CoconutCrop | FruitCrop | RubberCrop;

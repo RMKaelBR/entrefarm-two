@@ -9,7 +9,7 @@ import { useGameStore } from "./game-state";
 const state = () => useGameStore.getState();
 const cropById = (id: string) => {
   const crop = state().crops.find((item) => item.id === id);
-  if (!crop || (crop.kind === "coconut" || crop.kind === "fruit")) throw new Error("Missing cash crop fixture");
+  if (!crop || (crop.kind !== "rice" && crop.kind !== "corn")) throw new Error("Missing cash crop fixture");
   return crop;
 };
 function startOn(kind: CropKind, landId: string) {
@@ -117,5 +117,21 @@ describe.each(["rice", "corn"] as const)("%s parcel selection", (kind) => {
     if (next.kind === "rice") expect(next.irrigationBonus).toBeNull();
     expect(state().produceInventory).toBe(inventory);
     expect(state().cropPlantingHistory).toHaveLength(2);
+  });
+});
+
+describe("rubber parcel selection", () => {
+  it("registers its price and accepts all owned origins without changing terrain", () => {
+    expect(CROP_DEFINITIONS.rubber.purchaseCost).toEqual({ gold: 2, silver: 0 });
+    for (const origin of LAND_ORIGINS) {
+      const land = createLand(origin);
+      useGameStore.setState({ lands: [land], crops: [] });
+      expect(getCropPlacementBlockReason("rubber", land)).toBeNull();
+      rejected(() => state().startCropPlanting("rubber", "unowned"));
+      startOn("rubber", land.id);
+      expect(state().lands[0]).toBe(land);
+      rejected(() => state().startCropPlanting("rubber", land.id));
+      rejected(() => state().startCropPlanting("fruit", land.id));
+    }
   });
 });

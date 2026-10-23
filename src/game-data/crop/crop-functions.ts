@@ -1,3 +1,4 @@
+import { prepareRubberPreparation, prepareRubberMaintenance, prepareRubberProduction, tickRubber } from "./rubber-functions";
 import { newLongTermPreparation } from "./long-term-crop-functions";
 import { prepareFruitPreparation, prepareFruitMaintenance, prepareFruitProduction, tickFruit } from "./fruit-functions";
 import { prepareCoconutPreparation, prepareCoconutMaintenance, prepareCoconutProduction, tickCoconut, type RandomSource } from "./coconut-functions";
@@ -5,7 +6,7 @@ import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
 import { CROP_DEFINITIONS, IMPLEMENTED_CROPS } from "./crop-definitions";
 import { CASH_CROP_CARDS } from "./cash-crop-data";
-import type { Crop, FruitCrop, CoconutCrop, CashCropKind, CashCrop, CashCropBase, CropKind, CropPlantingRecord, ProduceToken } from "./crop-types";
+import type { CropProductionPayment, Crop, RubberCrop, FruitCrop, CoconutCrop, CashCropKind, CashCrop, CashCropBase, CropKind, CropPlantingRecord, ProduceToken } from "./crop-types";
 
 export const hasWholeGold = (wallet: Currency, cost: Currency) =>
   cost.silver === 0 && wallet.gold >= cost.gold;
@@ -68,12 +69,13 @@ export const isEligibleCornLand = (land: Land) =>
 export const canPlantCropOnLand = (kind: CropKind, land: Land) =>
   getCropPlacementBlockReason(kind, land) === null;
 
+export function createCrop(kind: "rubber", landId: Land["id"], year: number, month: number): RubberCrop;
 export function createCrop(kind: "fruit", landId: Land["id"], year: number, month: number): FruitCrop;
 export function createCrop(kind: "coconut", landId: Land["id"], year: number, month: number): CoconutCrop;
 export function createCrop(kind: CashCropKind, landId: Land["id"], year: number, month: number): CashCrop;
 export function createCrop(kind: CropKind, landId: Land["id"], year: number, month: number): Crop;
 export function createCrop(kind: CropKind, landId: Land["id"], year: number, month: number): Crop {
-  if (kind === "coconut" || kind === "fruit") return {
+  if (kind === "coconut" || kind === "fruit" || kind === "rubber") return {
     kind, id: crypto.randomUUID(), landId, startedYear: year, startedMonth: month,
     purchasing: { seedlingPaid: true },
     lifecycle: newLongTermPreparation(),
@@ -107,6 +109,7 @@ export function prepareCropDevelopment(
   task: unknown,
   parcelIsIrrigated: boolean | undefined,
 ): CropPayment | null {
+  if (crop.kind === "rubber") return prepareRubberPreparation(crop, task);
   if (crop.kind === "fruit") return prepareFruitPreparation(crop, task);
   if (crop.kind === "coconut") return prepareCoconutPreparation(crop, task);
   const costs = CASH_CROP_CARDS[crop.kind].developmentCosts;
@@ -124,6 +127,7 @@ export function prepareCropDevelopment(
 }
 
 export function prepareCropMaintenance(crop: Crop): CropPayment | null {
+  if (crop.kind === "rubber") return prepareRubberMaintenance(crop);
   if (crop.kind === "fruit") return prepareFruitMaintenance(crop);
   if (crop.kind === "coconut") return prepareCoconutMaintenance(crop);
   const card = CASH_CROP_CARDS[crop.kind];
@@ -131,7 +135,8 @@ export function prepareCropMaintenance(crop: Crop): CropPayment | null {
   return { cost: card.maintenanceSpaceCost, crop: { ...crop, maintenancePaid: crop.maintenancePaid + 1 } };
 }
 
-export function prepareCropProduction(crop: Crop, task: unknown): CropPayment | null {
+export function prepareCropProduction(crop: Crop, task: unknown): CropProductionPayment | null {
+  if (crop.kind === "rubber") return prepareRubberProduction(crop, task);
   if (crop.kind === "fruit") return prepareFruitProduction(crop, task);
   if (crop.kind === "coconut") return prepareCoconutProduction(crop, task);
   if (!isCashCropMature(crop)) return null;
@@ -165,6 +170,7 @@ export const countRicePlantingsForYear = (history: CropPlantingRecord[], year: n
 export function tickCrops(crops: Crop[], random: RandomSource = Math.random): Crop[] {
   return crops.map((crop) => {
     switch (crop.kind) {
+      case "rubber": return tickRubber(crop, random);
       case "fruit": return tickFruit(crop, random);
       case "coconut": return tickCoconut(crop, random);
       case "rice":

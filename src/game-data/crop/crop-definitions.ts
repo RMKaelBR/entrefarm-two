@@ -1,4 +1,4 @@
-import { COCONUT_CARD, FRUIT_CARD } from "./long-term-crop-data";
+import { COCONUT_CARD, FRUIT_CARD, RUBBER_CARD } from "./long-term-crop-data";
 import type { CropKind } from "./crop-types";
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
@@ -14,6 +14,11 @@ type CropDefinition<K extends CropKind> = {
 };
 
 export const CROP_DEFINITIONS = {
+    rubber: {
+        kind: "rubber", name: "Rubber", emoji: "🌳", purchaseLabel: "Seedling",
+        purchaseCost: RUBBER_CARD.seedlingCost,
+        getPlacementBlockReason: () => null,
+    },
     fruit: {
         kind: "fruit", name: "Fruit", emoji: "🍎", purchaseLabel: "Seedlings",
         purchaseCost: FRUIT_CARD.seedlingCost,
