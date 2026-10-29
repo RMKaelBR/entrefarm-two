@@ -1,3 +1,5 @@
+import { makeYield } from "@/game-data/yield/calculate-yield";
+import { createProduceInventory } from "@/game-data/crop/produce-functions";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
 import { getCropPlacementBlockReason } from "@/game-data/crop/crop-functions";
@@ -37,7 +39,7 @@ function rejected(action: () => boolean) {
 beforeEach(() => useGameStore.setState({
   year: 1, quarter: 1, month: 1, wallet: { gold: 100, silver: 0 },
   bank: { gold: 0, silver: 0 }, lands: [createLand("plains"), createLand("plains")],
-  crops: [], cropPlantingHistory: [], produceInventory: [], loans: [], children: [], hasActiveGame: true,
+  crops: [], cropPlantingHistory: [], produceInventory: createProduceInventory(), loans: [], children: [], hasActiveGame: true,
 }));
 
 describe.each(["rice", "corn"] as const)("%s parcel selection", (kind) => {
@@ -89,8 +91,8 @@ describe.each(["rice", "corn"] as const)("%s parcel selection", (kind) => {
     expect(cropById(b)).toBe(other);
     expect(state().harvestCrop(a)).toBe(true);
     expect(state().crops).toEqual([other]);
+    expect(state().produceInventory).toEqual({ ...createProduceInventory(), [kind]: makeYield(kind === "rice" ? 2 : 4) });
     expect(cropById(b)).toBe(other);
-    expect(state().produceInventory.every((token) => token.crop === kind)).toBe(true);
   });
 
   it("harvests and purchases the other kind on the same parcel with fresh state", () => {
@@ -104,8 +106,7 @@ describe.each(["rice", "corn"] as const)("%s parcel selection", (kind) => {
     expect(state().harvestCrop(id)).toBe(true);
     expect(state().crops).toEqual([]);
     const inventory = state().produceInventory;
-    expect(inventory.length).toBeGreaterThan(0);
-    expect(inventory.every((token) => token.crop === kind)).toBe(true);
+    expect(inventory).toEqual({ ...createProduceInventory(), [kind]: makeYield(kind === "rice" ? 2 : 4) });
     const nextKind = kind === "rice" ? "corn" : "rice";
     const gold = state().wallet.gold;
     const nextId = startOn(nextKind, land.id);

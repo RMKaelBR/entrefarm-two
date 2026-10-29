@@ -1,5 +1,4 @@
 "use client";
-import { totalProduceYield } from "@/game-data/crop/produce-functions";
 
 import { formatYield } from "@/game-data/yield/calculate-yield";
 
@@ -16,7 +15,7 @@ export function ProduceInventory() {
                 {IMPLEMENTED_CROPS.map((definition) => (
                     <div key={definition.kind}>
                         <dt><span aria-hidden="true">{definition.emoji}</span> {definition.name}</dt>
-                        <dd>{formatYield(totalProduceYield(inventory, definition.kind))} produce units</dd>
+                        <dd>{formatYield(inventory[definition.kind])} produce units</dd>
                     </div>
                 ))}
             </dl>

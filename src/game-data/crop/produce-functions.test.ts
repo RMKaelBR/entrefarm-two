@@ -1,65 +1,69 @@
-import { describe, expect, it, vi } from "vitest";
-import { makeYield } from "../yield/calculate-yield";
-import { collectCropProduce, consolidateProduce, createCropProduce, totalProduceYield } from "./produce-functions";
+import { describe, expect, it } from "vitest";
+import { makeYield, tenthsToYield } from "../yield/calculate-yield";
+import { collectCropProduce, createProduceInventory } from "./produce-functions";
 
-describe("produce tokens", () => {
-  it.each(["rice", "corn"] as const)("creates unique %s whole and tenth tokens from normalized quantities", (kind) => {
-    const tokens = createCropProduce(kind, { whole: 0, tenths: 23 });
-    expect(tokens).toHaveLength(5);
-    expect(tokens.map(t => t.denomination)).toEqual(["whole", "whole", "tenth", "tenth", "tenth"]);
-    expect(tokens.every(t => t.crop === kind)).toBe(true);
-    expect(new Set(tokens.map(t => t.id)).size).toBe(5);
-    expect(totalProduceYield(tokens, kind)).toEqual(makeYield(2, 3));
-    expect(totalProduceYield(tokens, kind === "rice" ? "corn" : "rice")).toEqual(makeYield(0));
-    expect(createCropProduce(kind, makeYield(0))).toEqual([]);
+const kinds = ["rice", "corn", "coconut", "fruit", "rubber"] as const;
+
+describe("produce inventory", () => {
+  it("creates all five zero quantities with isolated objects", () => {
+    const first = createProduceInventory();
+    const second = createProduceInventory();
+    expect(first).toEqual({ rice: makeYield(0), corn: makeYield(0), coconut: makeYield(0), fruit: makeYield(0), rubber: makeYield(0) });
+    expect(second).toEqual(first);
+    expect(second).not.toBe(first);
+    expect(new Set([...Object.values(first), ...Object.values(second)]).size).toBe(10);
   });
-  it("rejects negative and invalid quantities before creating IDs", () => {
-    const uuid = vi.spyOn(crypto, "randomUUID");
-    try {
-      expect(() => createCropProduce("rice", makeYield(0, -1))).toThrow(RangeError);
-      expect(() => createCropProduce("rice", { whole: NaN, tenths: 0 })).toThrow(RangeError);
-      expect(uuid).not.toHaveBeenCalled();
-    } finally { uuid.mockRestore(); }
-  });
-  it("combines held and collected tenths without replacing whole tokens", () => {
-    const held = createCropProduce("rice", makeYield(2, 3));
+
+  it.each(kinds)("adds fractions to %s without mutating holdings or incoming quantity", kind => {
+    const held = { ...createProduceInventory(), rice: makeYield(1, 7), corn: makeYield(4), [kind]: makeYield(2, 3) };
     const snapshot = structuredClone(held);
-    const result = collectCropProduce(held, "rice", makeYield(0, 7));
-    expect(totalProduceYield(result, "rice")).toEqual(makeYield(3));
-    expect(result).toHaveLength(3);
-    expect(result.every(t => t.denomination === "whole")).toBe(true);
-    for (const token of held.slice(0, 2)) expect(result).toContain(token);
-    expect(new Set(result.map(t => t.id)).size).toBe(3);
+    const incoming = makeYield(0, 7);
+    const result = collectCropProduce(held, kind, incoming);
+    expect(result).toEqual({ ...held, [kind]: makeYield(3) });
+    expect(result).not.toBe(held);
+    expect(result[kind]).not.toBe(held[kind]);
     expect(held).toEqual(snapshot);
-    expect(consolidateProduce(result)).toEqual(result);
+    expect(incoming).toEqual(makeYield(0, 7));
   });
-  it("consolidates every crop independently, retaining earliest residual tenths", () => {
-    const held = [
-      ...Array.from({ length: 23 }, () => createCropProduce("rice", makeYield(0, 1))[0]),
-      ...Array.from({ length: 17 }, () => createCropProduce("corn", makeYield(0, 1))[0]),
-      ...createCropProduce("fruit", makeYield(2, 4)),
-    ];
-    const snapshot = structuredClone(held);
-    const result = consolidateProduce(held);
-    for (const kind of ["rice", "corn", "fruit"] as const) {
-      expect(totalProduceYield(result, kind)).toEqual(totalProduceYield(held, kind));
+
+  it("normalizes incoming quantities and allows zero without changing totals", () => {
+    const held = collectCropProduce(createProduceInventory(), "rice", { whole: 0, tenths: 23 });
+    expect(held.rice).toEqual(makeYield(2, 3));
+    expect(collectCropProduce(held, "rice", makeYield(0))).toEqual(held);
+    expect(collectCropProduce(held, "corn", { whole: -1, tenths: 13 }).corn).toEqual(makeYield(0, 3));
+  });
+
+  it("accumulates repeated partial collections independently for every crop", () => {
+    let held = createProduceInventory();
+    for (const kind of kinds) {
+      for (const tenths of [3, 3, 5]) held = collectCropProduce(held, kind, makeYield(0, tenths));
     }
-    for (const token of [...held.slice(0, 3), ...held.slice(23, 30), ...held.slice(40)]) expect(result).toContain(token);
-    expect(result).toHaveLength(19);
-    expect(held).toEqual(snapshot);
-    const again = consolidateProduce(result);
-    result.forEach((token, index) => expect(again[index]).toBe(token));
-    const originalIds = new Set(held.map(t => t.id));
-    expect(result.filter(t => !originalIds.has(t.id))).toHaveLength(3);
+    for (const kind of kinds) expect(held[kind]).toEqual(makeYield(1, 1));
   });
-  it("accumulates repeated partial collections and leaves small holdings unchanged", () => {
-    let held = createCropProduce("rice", makeYield(0, 3));
-    const first = held[0];
-    held = collectCropProduce(held, "rice", makeYield(0, 3));
-    expect(held).toHaveLength(6);
-    held = collectCropProduce(held, "rice", makeYield(0, 5));
-    expect(totalProduceYield(held, "rice")).toEqual(makeYield(1, 1));
-    expect(held).toHaveLength(2);
-    expect(held).toContain(first);
+
+  it.each([
+    { whole: 0, tenths: -1 },
+    { whole: NaN, tenths: 0 },
+    { whole: 0, tenths: NaN },
+    { whole: 1.5, tenths: 0 },
+    { whole: 0, tenths: 0.5 },
+    { whole: Number.MAX_SAFE_INTEGER, tenths: 0 },
+    { whole: 0, tenths: Number.MAX_SAFE_INTEGER + 1 },
+  ])("rejects invalid quantity %j without mutating either argument", quantity => {
+    const held = { ...createProduceInventory(), rice: makeYield(2, 3) };
+    const snapshot = structuredClone(held);
+    const incoming = structuredClone(quantity);
+    expect(() => collectCropProduce(held, "rice", quantity)).toThrow(RangeError);
+    expect(held).toEqual(snapshot);
+    expect(quantity).toEqual(incoming);
+  });
+
+  it("rejects an overflowing total without mutating either argument", () => {
+    const held = { ...createProduceInventory(), rubber: tenthsToYield(Number.MAX_SAFE_INTEGER) };
+    const snapshot = structuredClone(held);
+    const incoming = makeYield(0, 1);
+    expect(() => collectCropProduce(held, "rubber", incoming)).toThrow(RangeError);
+    expect(held).toEqual(snapshot);
+    expect(incoming).toEqual(makeYield(0, 1));
   });
 });

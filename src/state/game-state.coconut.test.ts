@@ -1,4 +1,4 @@
-import { totalProduceYield } from "@/game-data/crop/produce-functions";
+import { createProduceInventory } from "@/game-data/crop/produce-functions";
 import { makeYield } from "@/game-data/yield/calculate-yield";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createCrop } from "@/game-data/crop/crop-functions";
@@ -33,7 +33,7 @@ const ready = (age: 0 | 1 | 2 = 0): CoconutCrop["lifecycle"] => ({ ...newAdultCy
 const young = (): CoconutYoung => ({ phase: "young", cropMonth: 6, regularTokens: 2, bonusTokens: 0, payments: [{ month: 6, weightHundredths: 75 }] });
 beforeEach(() => useGameStore.setState({ year: 1, quarter: 1, month: 1, wallet: { gold: 1000, silver: 9 },
   bank: { gold: 7, silver: 3 }, lands: LAND_ORIGINS.map(createLand), crops: [], cropPlantingHistory: [],
-  produceInventory: [], children: [], loans: [], hasActiveGame: true }));
+  produceInventory: createProduceInventory(), children: [], loans: [], hasActiveGame: true }));
 afterEach(() => vi.restoreAllMocks());
 
 describe("coconut store lifecycle", () => {
@@ -110,11 +110,7 @@ describe("coconut store lifecycle", () => {
       expect(tree().lifecycle).toMatchObject({ stage: "growing", cycleMonth: 1 });
     }
     expect(tree()).toMatchObject({ id: identity.id, landId: identity.landId, startedYear: 1, startedMonth: 1 });
-    expect(state().produceInventory).toHaveLength(6);
-    expect(state().produceInventory.every(token => token.denomination === "whole")).toBe(true);
-    expect(totalProduceYield(state().produceInventory, "coconut")).toEqual(makeYield(6));
-    expect(new Set(state().produceInventory.map((p) => p.id)).size).toBe(6);
-    expect(state().produceInventory.every((p) => p.crop === "coconut")).toBe(true);
+    expect(state().produceInventory.coconut).toEqual(makeYield(6));
     expect(state().cropPlantingHistory).toHaveLength(1);
     expect(state().wallet.gold).toBe(986);
     expect(state().bank).toEqual({ gold: 7, silver: 3 });
@@ -243,7 +239,7 @@ describe("coconut store lifecycle", () => {
     rejected(() => state().harvestCrop(id));
     expect(state().fundCropProduction(id, "hauling")).toBe(true);
     expect(state().harvestCrop(id)).toBe(true);
-    expect(state().produceInventory).toHaveLength(2);
+    expect(state().produceInventory.coconut).toEqual(makeYield(2));
     expect(tree().lifecycle).toMatchObject({ stage: "resting", progress: 0, payments: [] });
     state().advanceWorldTime();
     expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, payments: [] });
@@ -296,6 +292,6 @@ describe("coconut store lifecycle", () => {
     for (const task of ["harvesting", "hauling", "drying"] as const) expect(state().fundCropProduction(rice.id, task)).toBe(true);
     expect(state().harvestCrop(rice.id)).toBe(true);
     expect(state().crops.map((c) => c.id)).toEqual([id, corn.id]);
-    expect(state().produceInventory).toHaveLength(2);
+    expect(state().produceInventory).toEqual({ ...createProduceInventory(), rice: makeYield(2) });
   });
 });

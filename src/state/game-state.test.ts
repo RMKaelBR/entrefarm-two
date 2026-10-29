@@ -1,3 +1,5 @@
+import { createProduceInventory } from "@/game-data/crop/produce-functions";
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearLand, createLand } from "@/game-data/land/land-functions";
 import { LAND_ORIGINS } from "@/game-data/land/land-types";
@@ -35,6 +37,7 @@ describe("game lifecycle", () => {
   });
 
   it("boots with deterministic data and no active game", () => {
+    expect(useGameStore.getInitialState().produceInventory).toEqual(createProduceInventory());
     expect(useGameStore.getState()).toMatchObject({
       year: 1,
       quarter: 1,
@@ -68,10 +71,12 @@ describe("game lifecycle", () => {
 
   it("replaces randomized entities when starting another game", () => {
     useGameStore.getState().startNewGame();
+    const firstInventory = useGameStore.getState().produceInventory;
     const firstLandIds = useGameStore.getState().lands.map((land) => land.id);
     const firstChildIds = useGameStore.getState().children.map((child) => child.id);
 
     useGameStore.setState({
+      produceInventory: { ...createProduceInventory(), rice: makeYield(2, 3), rubber: makeYield(1) },
       year: 7,
       wallet: { gold: 3, silver: 4 },
     });
@@ -83,6 +88,13 @@ describe("game lifecycle", () => {
       wallet: { gold: 20, silver: 0 },
       hasActiveGame: true,
     });
+    expect(state.produceInventory).toEqual(createProduceInventory());
+    expect(state.produceInventory).not.toBe(firstInventory);
+    expect(state.produceInventory).not.toBe(useGameStore.getInitialState().produceInventory);
+    for (const kind of Object.keys(firstInventory) as (keyof typeof firstInventory)[]) {
+      expect(state.produceInventory[kind]).not.toBe(firstInventory[kind]);
+      expect(state.produceInventory[kind]).not.toBe(useGameStore.getInitialState().produceInventory[kind]);
+    }
     expect(state.lands.map((land) => land.id)).not.toEqual(firstLandIds);
     expect(state.children.map((child) => child.id)).not.toEqual(firstChildIds);
   });
@@ -215,11 +227,13 @@ describe("owned land store actions", () => {
   });
 
   it("resets to an active new game with fresh lands and children", () => {
+    const beforeInventory = { ...createProduceInventory(), corn: makeYield(3), fruit: makeYield(2, 3) };
     const beforeReset = LAND_ORIGINS.map(createLand);
     const beforeChildren = [makeAdultChild({ id: "before-1" })];
 
     useGameStore.setState({
       wallet: { gold: 20, silver: 0 },
+      produceInventory: beforeInventory,
       lands: beforeReset,
       children: beforeChildren,
       hasActiveGame: true,
@@ -228,6 +242,12 @@ describe("owned land store actions", () => {
     useGameStore.getState().resetAll();
 
     const resetState = useGameStore.getState();
+    expect(resetState.produceInventory).toEqual(createProduceInventory());
+    expect(resetState.produceInventory).not.toBe(beforeInventory);
+    for (const kind of Object.keys(beforeInventory) as (keyof typeof beforeInventory)[]) {
+      expect(resetState.produceInventory[kind]).not.toBe(beforeInventory[kind]);
+      expect(resetState.produceInventory[kind]).not.toBe(useGameStore.getInitialState().produceInventory[kind]);
+    }
     expect(resetState.wallet).toEqual({ gold: 20, silver: 0 });
     expect(resetState.hasActiveGame).toBe(true);
     expect(resetState.lands.map((land) => land.origin)).toEqual(LAND_ORIGINS);

@@ -1,5 +1,5 @@
-import { createCropProduce, totalProduceYield } from "@/game-data/crop/produce-functions";
-import { makeYield } from "@/game-data/yield/calculate-yield";
+import { createProduceInventory } from "@/game-data/crop/produce-functions";
+import { addYield, makeYield, tenthsToYield } from "@/game-data/yield/calculate-yield";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createCrop } from "@/game-data/crop/crop-functions";
 import { matureRubberIfReady, newRubberAdultCycle } from "@/game-data/crop/rubber-functions";
@@ -36,7 +36,7 @@ function inject(lifecycle: RubberCrop["lifecycle"], id = tree().id) {
 const ready = (): Extract<RubberAdult, { stage: "ready" }> => ({ ...newRubberAdultCycle(), stage: "ready", cycleMonth: 3, progress: 1, yieldResult: "high" });
 beforeEach(() => useGameStore.setState({
   year: 1, quarter: 1, month: 1, wallet: { gold: 1000, silver: 9 }, bank: { gold: 7, silver: 3 },
-  lands: LAND_ORIGINS.map(createLand), crops: [], cropPlantingHistory: [], produceInventory: [],
+  lands: LAND_ORIGINS.map(createLand), crops: [], cropPlantingHistory: [], produceInventory: createProduceInventory(),
   children: [], loans: [], hasActiveGame: true,
 }));
 afterEach(() => vi.restoreAllMocks());
@@ -108,7 +108,7 @@ describe("rubber store integration", () => {
       expect(state().fundCropProduction(id, "hauling")).toBe(true);
       state().advanceWorldTime();
     }
-    expect(state().produceInventory).toHaveLength(9);
+    expect(state().produceInventory.rubber).toEqual(makeYield(9));
     expect(state().wallet).toEqual({ gold: 986, silver: 9 });
     expect(state().cropPlantingHistory).toHaveLength(1);
     expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, previousCyclePenalty: false });
@@ -124,11 +124,7 @@ describe("rubber store integration", () => {
     if (delay) state().advanceWorldTime();
     expect(state().fundCropProduction(id, "hauling")).toBe(true);
     expect(state().wallet.gold).toBe(before.wallet.gold - 2);
-    expect(state().produceInventory).toHaveLength(3 - delay);
-    expect(state().produceInventory.every(token => token.denomination === "whole")).toBe(true);
-    expect(totalProduceYield(state().produceInventory, "rubber")).toEqual(makeYield(3 - delay));
-    expect(new Set(state().produceInventory.map(p => p.id)).size).toBe(3 - delay);
-    expect(state().produceInventory.every(p => p.crop === "rubber")).toBe(true);
+    expect(state().produceInventory.rubber).toEqual(makeYield(3 - delay));
     rejected(() => state().fundCropProduction(id, "hauling"));
     rejected(() => state().fundCropProduction(id, "tapping"));
     const inventory = state().produceInventory;
@@ -174,7 +170,7 @@ describe("rubber store integration", () => {
     expect(tree().lifecycle).toMatchObject({ cycleMonth: 3, batch: null });
     expect(state().fundCropProduction(id, "tapping")).toBe(true);
     expect(state().fundCropProduction(id, "hauling")).toBe(true);
-    expect(state().produceInventory).toHaveLength(2);
+    expect(state().produceInventory.rubber).toEqual(makeYield(2));
     state().advanceWorldTime();
     expect(tree().lifecycle).toMatchObject({ previousCyclePenalty: false });
   });
@@ -236,29 +232,40 @@ it("commits hauling payment and collection together", () => {
   useGameStore.setState({ wallet: { gold: 1, silver: 9 } });
   expect(state().fundCropProduction(id, "hauling")).toBe(true);
   expect(state().wallet).toEqual({ gold: 0, silver: 9 });
-  expect(state().produceInventory).toHaveLength(inventory.length + 3);
+  expect(state().produceInventory.rubber).toEqual(addYield(inventory.rubber, makeYield(3)));
   expect(tree().lifecycle).toMatchObject({ batch: null });
 
   useGameStore.setState({ wallet: { gold: 5, silver: 9 } });
   rejected(() => state().fundCropProduction(id, "hauling"));
 });
 
-it("consolidates fractional rubber only after affordable hauling", () => {
+it("accumulates fractional rubber only after affordable hauling", () => {
   const id = start();
   inject({ ...ready(), tappedOnTime: true,
     batch: { quantity: makeYield(0, 7), advancesSinceTapping: 0 },
   }, id);
-  const held = createCropProduce("rubber", makeYield(2, 3));
+  const held = { ...createProduceInventory(), rubber: makeYield(2, 3), corn: makeYield(1, 2) };
+  const snapshot = structuredClone(held);
   useGameStore.setState({ produceInventory: held, wallet: { gold: 0, silver: 99 } });
   rejected(() => state().fundCropProduction(id, "hauling"));
   useGameStore.setState({ wallet: { gold: 1, silver: 0 } });
   expect(state().fundCropProduction(id, "hauling")).toBe(true);
-  expect(totalProduceYield(state().produceInventory, "rubber")).toEqual(makeYield(3));
-  expect(state().produceInventory).toHaveLength(3);
-  expect(state().produceInventory.every(t => t.denomination === "whole")).toBe(true);
-  expect(state().produceInventory).toContain(held[0]);
-  expect(state().produceInventory).toContain(held[1]);
+  expect(state().produceInventory).toEqual({ ...held, rubber: makeYield(3) });
+  expect(held).toEqual(snapshot);
   expect(state().wallet).toEqual({ gold: 0, silver: 0 });
   expect(tree().lifecycle).toMatchObject({ batch: null });
   rejected(() => state().fundCropProduction(id, "hauling"));
+});
+
+it("rejects overflowing hauling without changing payment, batch, or inventory", () => {
+  const id = start();
+  inject({ ...ready(), tappedOnTime: true,
+    batch: { quantity: makeYield(0, 7), advancesSinceTapping: 0 },
+  }, id);
+  useGameStore.setState({ wallet: { gold: 1, silver: 0 }, produceInventory: {
+    ...createProduceInventory(), rubber: tenthsToYield(Number.MAX_SAFE_INTEGER),
+  } });
+  const before = state();
+  expect(() => state().fundCropProduction(id, "hauling")).toThrow(RangeError);
+  expect(state()).toBe(before);
 });

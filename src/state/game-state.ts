@@ -1,4 +1,4 @@
-import { collectCropProduce } from "@/game-data/crop/produce-functions";
+import { collectCropProduce, createProduceInventory } from "@/game-data/crop/produce-functions";
 import { prepareRubberFullMaintenance } from "@/game-data/crop/rubber-functions";
 import { canCollectFruit, fruitYield, collectFruitCycle, prepareFruitFullMaintenance } from "@/game-data/crop/fruit-functions";
 import { canCollectCoconut, coconutYield, finishAdultCycle, prepareCoconutFullMaintenance } from "@/game-data/crop/coconut-functions";
@@ -71,7 +71,7 @@ const initialState: Pick<
     children: [],
     crops: [],
     cropPlantingHistory: [],
-    produceInventory: [],
+    produceInventory: createProduceInventory(),
     hasActiveGame: false,
 };
 
@@ -102,7 +102,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             children: [createChild(), createChild()],
             crops: [],
             cropPlantingHistory: [],
-            produceInventory: [],
+            produceInventory: createProduceInventory(),
             hasActiveGame: true,
         }),
 
@@ -400,34 +400,37 @@ export const useGameStore = create<GameState>((set, get) => ({
                 const adult = crop.lifecycle;
                 if (adult.phase !== "adult" || !canCollectCoconut(adult)) return state;
                 const quantity = coconutYield(adult);
+                const produceInventory = collectCropProduce(state.produceInventory, "coconut", quantity);
                 committed = true;
                 return {
                     ...state,
                     crops: state.crops.map((item) => item.id === cropId
                         ? { ...crop, lifecycle: finishAdultCycle("collected", quantity) } : item),
-                    produceInventory: collectCropProduce(state.produceInventory, "coconut", quantity),
+                    produceInventory,
                 };
             }
             if (crop.kind === "fruit") {
                 const adult = crop.lifecycle;
                 if (adult.phase !== "adult" || !canCollectFruit(adult)) return state;
                 const quantity = fruitYield(adult);
+                const produceInventory = collectCropProduce(state.produceInventory, "fruit", quantity);
                 committed = true;
                 return {
                     ...state,
                     crops: state.crops.map((item) => item.id === cropId
                         ? { ...crop, lifecycle: collectFruitCycle(quantity) } : item),
-                    produceInventory: collectCropProduce(state.produceInventory, "fruit", quantity),
+                    produceInventory,
                 };
             }
 
             if (crop.kind === "rubber") return state;
             if (!isCashCropMature(crop) || !isCropProductionPaid(crop)) return state;
+            const produceInventory = collectCropProduce(state.produceInventory, crop.kind, getCropYield(crop));
             committed = true;
             return {
                 ...state,
                 crops: state.crops.filter((item) => item.id !== cropId),
-                produceInventory: collectCropProduce(state.produceInventory, crop.kind, getCropYield(crop)),
+                produceInventory,
             };
         });
         return committed;

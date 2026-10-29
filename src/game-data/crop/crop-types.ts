@@ -39,11 +39,7 @@ export type CropPlantingRecord = {
   year: number;
 };
 
-export type ProduceToken = {
-  id: string;
-  crop: CropKind;
-  denomination: "whole" | "tenth";
-};
+export type ProduceInventory = Record<CropKind, Yield>;
 
 // Shared funding API covers cash-crop and long-term development.
 export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask | RubberDevelopmentTask;
