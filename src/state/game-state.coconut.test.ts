@@ -1,3 +1,5 @@
+import { totalProduceYield } from "@/game-data/crop/produce-functions";
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createCrop } from "@/game-data/crop/crop-functions";
 import { newAdultCycle } from "@/game-data/crop/coconut-functions";
@@ -102,13 +104,15 @@ describe("coconut store lifecycle", () => {
       for (const task of ["climbingPiling", "husking", "hauling"] as const) expect(state().fundCropProduction(id, task)).toBe(true);
       expect(state().harvestCrop(id)).toBe(true);
       rejected(() => state().harvestCrop(id));
-      expect(tree().lifecycle).toMatchObject({ stage: "resting", lastHarvest: { outcome: "collected", quantity: 3 } });
+      expect(tree().lifecycle).toMatchObject({ stage: "resting", lastHarvest: { outcome: "collected", quantity: makeYield(3) } });
       rejected(() => state().fundCropMaintenance(id));
       state().advanceWorldTime();
       expect(tree().lifecycle).toMatchObject({ stage: "growing", cycleMonth: 1 });
     }
     expect(tree()).toMatchObject({ id: identity.id, landId: identity.landId, startedYear: 1, startedMonth: 1 });
     expect(state().produceInventory).toHaveLength(6);
+    expect(state().produceInventory.every(token => token.denomination === "whole")).toBe(true);
+    expect(totalProduceYield(state().produceInventory, "coconut")).toEqual(makeYield(6));
     expect(new Set(state().produceInventory.map((p) => p.id)).size).toBe(6);
     expect(state().produceInventory.every((p) => p.crop === "coconut")).toBe(true);
     expect(state().cropPlantingHistory).toHaveLength(1);
@@ -255,9 +259,9 @@ describe("coconut store lifecycle", () => {
     state().advanceWorldTime();
     expect(tree().lifecycle).toMatchObject({ readyAge: 2 });
     state().advanceWorldTime();
-    expect(tree().lifecycle).toMatchObject({ stage: "resting", progress: 0, payments: [], lastHarvest: { outcome: "lost", quantity: 0 } });
+    expect(tree().lifecycle).toMatchObject({ stage: "resting", progress: 0, payments: [], lastHarvest: { outcome: "lost", quantity: makeYield(0) } });
     state().advanceWorldTime();
-    expect(tree().lifecycle).toEqual({ ...newAdultCycle(), lastHarvest: { outcome: "lost", quantity: 0 } });
+    expect(tree().lifecycle).toEqual({ ...newAdultCycle(), lastHarvest: { outcome: "lost", quantity: makeYield(0) } });
     expect(tree().id).toBe(id);
     expect(state().wallet).toBe(before.wallet);
     expect(state().bank).toBe(before.bank);

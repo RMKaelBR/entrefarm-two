@@ -1,3 +1,4 @@
+import type { Yield } from "../yield/yield-types";
 import type { Land } from "../land/land-types";
 import type { Currency, TokenTrack } from "../types";
 
@@ -41,6 +42,7 @@ export type CropPlantingRecord = {
 export type ProduceToken = {
   id: string;
   crop: CropKind;
+  denomination: "whole" | "tenth";
 };
 
 // Shared funding API covers cash-crop and long-term development.
@@ -52,7 +54,7 @@ export type CropProductionPayment<TCrop extends Crop = Crop> = {
   cost: Currency;
   collectedProduce?: {
     kind: TCrop["kind"];
-    quantity: number;
+    quantity: Yield;
   };
 };
 
@@ -94,7 +96,7 @@ export type CoconutAdult = {
   progress: number;
   payments: MaintenancePayment<100 | 75>[];
   production: Record<CoconutProductionTask, boolean>;
-  lastHarvest: { outcome: "collected" | "lost"; quantity: number } | null;
+  lastHarvest: { outcome: "collected" | "lost"; quantity: Yield } | null;
 } & (
   | { stage: "resting" }
   | { stage: "growing"; cycleMonth: 1 | 2 }
@@ -121,7 +123,7 @@ export type FruitAdult = {
   progress: number;
   payments: MaintenancePayment<100 | 75 | 50 | 25>[];
   production: Record<FruitProductionTask, boolean>;
-  lastHarvest: { outcome: "collected" | "lost"; quantity: number } | null;
+  lastHarvest: { outcome: "collected" | "lost"; quantity: Yield } | null;
 } & (
   | { stage: "resting" }
   | { stage: "growing"; cycleMonth: number }
@@ -144,7 +146,7 @@ export type RubberDevelopmentTask = LongTermDevelopmentTask;
 export type RubberProductionTask = "tapping" | "hauling";
 export type RubberYoung = LongTermDevelopmentTrack;
 export type RubberBatch = {
-  quantity: number;
+  quantity: Yield;
   advancesSinceTapping: 0 | 1;
 };
 export type RubberAdult = {

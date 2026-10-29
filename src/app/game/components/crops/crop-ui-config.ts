@@ -9,11 +9,11 @@ type CropUiConfig = {
 export const CROP_UI_CONFIG = {
     rice: {
         showAffordabilityWarning: false,
-        maintenanceMessage: "Maintenance is optional. Full maintenance adds two tokens to the base yield; the recorded irrigation bonus still applies.",
+        maintenanceMessage: "Maintenance is optional. Full maintenance adds two units to the base yield; the recorded irrigation bonus still applies.",
     },
     corn: {
         showAffordabilityWarning: true,
-        maintenanceMessage: "Maintenance is optional. Full maintenance yields six tokens; otherwise harvest yields four.",
+        maintenanceMessage: "Maintenance is optional. Full maintenance yields six units; otherwise harvest yields four.",
     },
 } satisfies Record<CashCropKind, CropUiConfig>;
 

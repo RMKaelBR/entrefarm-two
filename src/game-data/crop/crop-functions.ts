@@ -1,3 +1,5 @@
+import type { Yield } from "../yield/yield-types";
+import { addYield, makeYield } from "../yield/calculate-yield";
 import { prepareRubberPreparation, prepareRubberMaintenance, prepareRubberProduction, tickRubber } from "./rubber-functions";
 import { newLongTermPreparation } from "./long-term-crop-functions";
 import { prepareFruitPreparation, prepareFruitMaintenance, prepareFruitProduction, tickFruit } from "./fruit-functions";
@@ -6,7 +8,7 @@ import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
 import { CROP_DEFINITIONS, IMPLEMENTED_CROPS } from "./crop-definitions";
 import { CASH_CROP_CARDS } from "./cash-crop-data";
-import type { CropProductionPayment, Crop, RubberCrop, FruitCrop, CoconutCrop, CashCropKind, CashCrop, CashCropBase, CropKind, CropPlantingRecord, ProduceToken } from "./crop-types";
+import type { CropProductionPayment, Crop, RubberCrop, FruitCrop, CoconutCrop, CashCropKind, CashCrop, CashCropBase, CropKind, CropPlantingRecord } from "./crop-types";
 
 export const hasWholeGold = (wallet: Currency, cost: Currency) =>
   cost.silver === 0 && wallet.gold >= cost.gold;
@@ -156,14 +158,12 @@ export function prepareCropProduction(crop: Crop, task: unknown): CropProduction
 }
 
 export const isCropProductionPaid = (crop: CashCrop) => Object.values(crop.production).every(Boolean);
-export const getCropYield = (crop: CashCrop) => {
+export const getCropYield = (crop: CashCrop): Yield => {
   const card = CASH_CROP_CARDS[crop.kind];
   const baseYield = crop.maintenancePaid === card.maintenanceSpaces ? card.highYield : card.lowYield;
   const bonus = crop.kind === "rice" && crop.irrigationBonus === true ? 1 : 0;
-  return baseYield + bonus;
+  return addYield(baseYield, makeYield(bonus));
 };
-export const createCropProduce = (kind: CropKind, quantity: number): ProduceToken[] =>
-  Array.from({ length: quantity }, () => ({ id: crypto.randomUUID(), crop: kind }));
 export const countRicePlantingsForYear = (history: CropPlantingRecord[], year: number) =>
   history.filter((item) => item.kind === "rice" && item.year === year).length;
 

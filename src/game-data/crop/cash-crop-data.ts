@@ -1,3 +1,5 @@
+import { makeYield } from "../yield/calculate-yield";
+import type { Yield } from "../yield/yield-types";
 import type { Currency } from "../types";
 import { gold } from "../money/calculate-money";
 import type {
@@ -25,8 +27,8 @@ export const RICE_CARD = {
     hauling: gold(1),
     drying: gold(2),
   } satisfies Record<RiceProductionTask, Currency>,
-  highYield: 4,
-  lowYield: 2,
+  highYield: makeYield(4),
+  lowYield: makeYield(2),
 } as const;
 
 export const CORN_CARD = {
@@ -45,8 +47,8 @@ export const CORN_CARD = {
     hauling: gold(2),
     drying: gold(3),
   } satisfies Record<CornProductionTask, Currency>,
-  highYield: 6,
-  lowYield: 4,
+  highYield: makeYield(6),
+  lowYield: makeYield(4),
 } as const;
 
 type CropOf<K extends CashCropKind> = Extract<CashCrop, { kind: K }>;
@@ -59,8 +61,8 @@ type CropCards = {
     maintenanceSpaces: number;
     sourceMaturitySpaces: number;
     growthAdvancesToHarvest: number;
-    highYield: number;
-    lowYield: number;
+    highYield: Yield;
+    lowYield: Yield;
   };
 };
 

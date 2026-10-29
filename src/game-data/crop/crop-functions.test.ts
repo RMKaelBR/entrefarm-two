@@ -1,3 +1,4 @@
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { newRubberAdultCycle } from "./rubber-functions";
 import { describe, expect, it } from "vitest";
 import { clearLand, irrigateLand, createLand } from "../land/land-functions";
@@ -12,7 +13,6 @@ import {
   prepareCropMaintenance,
   countRicePlantingsForYear,
   createCrop,
-  createCropProduce,
   getCashCropStage,
   getCropYield,
   hasWholeGold,
@@ -80,9 +80,9 @@ describe("irrigated rice rules", () => {
     const three = prepareCropMaintenance(twice)!.crop;
     const four = prepareCropMaintenance(three)!.crop;
 
-    expect(getCropYield(crop)).toBe(2);
-    expect(getCropYield(cash(three))).toBe(3);
-    expect(getCropYield(cash(four))).toBe(5);
+    expect(getCropYield(crop)).toEqual(makeYield(2));
+    expect(getCropYield(cash(three))).toEqual(makeYield(3));
+    expect(getCropYield(cash(four))).toEqual(makeYield(5));
     expect(prepareCropMaintenance(four)).toBeNull();
   });
 
@@ -110,12 +110,6 @@ describe("irrigated rice rules", () => {
     expect(countRicePlantingsForYear(history, 2)).toBe(1);
   });
 
-  it("creates unique crop-identified produce tokens", () => {
-    const produce = createCropProduce("rice", 5);
-    expect(produce).toHaveLength(5);
-    expect(produce.every((token) => token.crop === "rice")).toBe(true);
-    expect(new Set(produce.map((token) => token.id)).size).toBe(5);
-  });
 });
 
 describe("corn eligibility and task boundaries", () => {
@@ -148,11 +142,10 @@ describe("shared crop definitions", () => {
       expect(prepareCropProduction(mature, task)).toBeNull();
     }
     for (let maintenancePaid = 0; maintenancePaid <= 4; maintenancePaid++) {
-      expect(getCropYield({ ...crop, maintenancePaid })).toBe(
-        kind === "rice" ? (maintenancePaid === 4 ? 4 : 2) : (maintenancePaid === 4 ? 6 : 4),
+      expect(getCropYield({ ...crop, maintenancePaid })).toEqual(
+        makeYield(kind === "rice" ? (maintenancePaid === 4 ? 4 : 2) : (maintenancePaid === 4 ? 6 : 4)),
       );
     }
-    expect(createCropProduce(kind, 3).every((token) => token.crop === kind)).toBe(true);
   });
   it("requires each rice placement property", () => {
     const land = createLand("riverlands");
@@ -213,9 +206,9 @@ it("routes rubber production through shared preparation", () => {
   const tapped = prepareCropProduction(crop, "tapping");
   if (!tapped) throw new Error("Expected tapping payment");
   expect(tapped.collectedProduce).toBeUndefined();
-  expect(tapped.crop).toMatchObject({ lifecycle: { batch: { quantity: 3 } } });
+  expect(tapped.crop).toMatchObject({ lifecycle: { batch: { quantity: makeYield(3) } } });
   const hauled = prepareCropProduction(tapped.crop, "hauling");
-  expect(hauled).toMatchObject({ collectedProduce: { kind: "rubber", quantity: 3 },
+  expect(hauled).toMatchObject({ collectedProduce: { kind: "rubber", quantity: makeYield(3) },
     crop: { lifecycle: { batch: null } } });
   expect(prepareCropProduction(crop, "harvesting")).toBeNull();
 });

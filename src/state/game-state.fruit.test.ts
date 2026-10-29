@@ -1,3 +1,5 @@
+import { totalProduceYield } from "@/game-data/crop/produce-functions";
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createCrop } from "@/game-data/crop/crop-functions";
 import { newFruitAdultCycle } from "@/game-data/crop/fruit-functions";
@@ -94,13 +96,15 @@ describe("fruit store lifecycle", () => {
       expect(state().fundCropProduction(id, "harvesting")).toBe(true);
       expect(state().harvestCrop(id)).toBe(true);
       rejected(() => state().harvestCrop(id));
-      expect(tree().lifecycle).toMatchObject({ stage: "resting", lastHarvest: { quantity: 8 } });
+      expect(tree().lifecycle).toMatchObject({ stage: "resting", lastHarvest: { quantity: makeYield(8) } });
       state().advanceWorldTime();
       expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, progress: 0, payments: [] });
     }
     expect(tree()).toMatchObject({ id, landId: initial.landId, startedYear: 1, startedMonth: 1 });
     expect(state().cropPlantingHistory).toHaveLength(1);
     expect(state().produceInventory).toHaveLength(16);
+    expect(state().produceInventory.every(token => token.denomination === "whole")).toBe(true);
+    expect(totalProduceYield(state().produceInventory, "fruit")).toEqual(makeYield(16));
     expect(new Set(state().produceInventory.map(p => p.id)).size).toBe(16);
     expect(state().produceInventory.every(p => p.crop === "fruit")).toBe(true);
     expect(state().wallet).toEqual({ gold: 975, silver: 9 });
@@ -163,7 +167,7 @@ describe("fruit store lifecycle", () => {
     expect(state().fundCropProduction(id, "harvesting")).toBe(true);
     const before = state();
     state().advanceWorldTime(); state().advanceWorldTime();
-    expect(tree().lifecycle).toEqual(newFruitAdultCycle(0, { outcome: "lost", quantity: 0 }));
+    expect(tree().lifecycle).toEqual(newFruitAdultCycle(0, { outcome: "lost", quantity: makeYield(0) }));
     expect(state().wallet).toBe(before.wallet); expect(state().bank).toBe(before.bank);
     expect(state().produceInventory).toBe(before.produceInventory);
   });

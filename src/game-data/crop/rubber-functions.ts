@@ -1,3 +1,5 @@
+import type { Yield } from "../yield/yield-types";
+import { compareYield, makeYield, subYield } from "../yield/calculate-yield";
 import type { CropProductionPayment, RubberAdult, RubberBatch, RubberCrop, RubberYoung } from "./crop-types";
 import type { Currency } from "../types";
 import { RUBBER_CARD as card } from "./long-term-crop-data";
@@ -69,8 +71,9 @@ export function prepareRubberMaintenance(crop: RubberCrop): RubberPayment | null
 
 function ageRubberBatch(batch: RubberBatch | null): RubberBatch | null {
   if (!batch || batch.advancesSinceTapping === 1) return null;
+  const remaining = subYield(batch.quantity, makeYield(1));
   return {
-    ...batch, quantity: Math.max(0, batch.quantity - 1),
+    ...batch, quantity: compareYield(remaining, makeYield(0)) < 0 ? makeYield(0) : remaining,
     advancesSinceTapping: 1,
   };
 }
@@ -106,8 +109,7 @@ export function prepareRubberTapping(crop: RubberCrop): RubberPayment | null {
     && life.lateTappingAvailable;
   if (!onTime && !late) return null;
   if (life.stage === "ready" && onTime) {
-    const quantity = card.readyYield[life.yieldResult]
-      - (life.previousCyclePenalty ? 1 : 0);
+    const quantity = rubberTappingYield(life);
     return { cost: card.productionCosts.tapping, crop: { ...crop, lifecycle: {
       ...life, tappedOnTime: true, batch: {
         quantity, advancesSinceTapping: 0,
@@ -123,11 +125,11 @@ export function prepareRubberTapping(crop: RubberCrop): RubberPayment | null {
 
 export function prepareRubberHauling(
   crop: RubberCrop,
-): (RubberPayment & { quantity: number }) | null {
+): (RubberPayment & { quantity: Yield }) | null {
   const life = crop.lifecycle;
   if (life.phase !== "adult") return null;
   const batch = life.batch;
-  if (!batch || batch.quantity <= 0) return null;
+  if (!batch || compareYield(batch.quantity, makeYield(0)) <= 0) return null;
   return { cost: card.productionCosts.hauling, quantity: batch.quantity,
     crop: { ...crop, lifecycle: { ...life,
       batch: null,
@@ -148,4 +150,13 @@ export function prepareRubberProduction(
     crop: payment.crop,
     collectedProduce: { kind: "rubber", quantity: payment.quantity },
   };
+}
+
+export function rubberTappingYield(
+  adult: Extract<RubberAdult, { stage: "ready" }>,
+): Yield {
+  return subYield(
+    card.readyYield[adult.yieldResult],
+    makeYield(adult.previousCyclePenalty ? 1 : 0),
+  );
 }

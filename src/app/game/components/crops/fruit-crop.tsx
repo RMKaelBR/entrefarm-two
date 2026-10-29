@@ -1,5 +1,7 @@
 "use client";
 
+import { formatYield } from "@/game-data/yield/calculate-yield";
+
 import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
 
 import { FRUIT_CARD as card } from "@/game-data/crop/long-term-crop-data";
@@ -46,12 +48,12 @@ export function FruitCropComponent({ crop }: { crop: FruitCrop }) {
                 <p>Regular growth arrives every third crop month. The bonus resolves after period month 6 ends, then slots reset.</p>
             </> : <>
                 <p>Adult · {life.stage === "resting" ? "Between cycles" : `Cycle month ${life.cycleMonth}`} · Production growth: {life.progress} / {card.productionTokens}</p>
-                {life.lastHarvest && <p role="status">Last harvest: {life.lastHarvest.outcome} · {life.lastHarvest.quantity} produce tokens.</p>}
+                {life.lastHarvest && <p role="status">Last harvest: {life.lastHarvest.outcome} · {formatYield(life.lastHarvest.quantity)} produce units.</p>}
                 <p>Production maintenance: {life.payments.length} / {card.productionMaintenanceSlots} · High-yield chance: {percentage(fruitHighChance(life))}</p>
                 {life.stage === "resting" ? <p>This harvest cycle has ended. The next successful monthly advance starts month 1 of the next cycle.</p> : <>
                     {life.stage === "growing" && <p>Normally ready in cycle month {card.productionCycleMonths}. Surplus development growth can shorten this cycle.</p>}
                     {life.stage === "ready" && <>
-                        <p>{life.readyAge === 0 ? "Harvest-ready" : "Overripe"} · Stored result: {life.yieldResult} · Available yield: {fruitYield(life)} tokens</p>
+                        <p>{life.readyAge === 0 ? "Harvest-ready" : "Overripe"} · Stored result: {life.yieldResult} · Available yield: {formatYield(fruitYield(life))} units</p>
                         <p>{2 - life.readyAge} successful monthly advances before total loss.</p>
                         {productionTasks.map((task) => <div key={task}>
                             <p>{task === "harvesting" ? "Harvesting" : "Hauling"}: {life.production[task] ? "Paid" : "Unpaid — required"}</p>
@@ -60,7 +62,7 @@ export function FruitCropComponent({ crop }: { crop: FruitCrop }) {
                                 onClick={() => produce(crop.id, task)} />
                         </div>)}
                         <p>Both production expenses are required, including while overripe.</p>
-                        <Button label={`Collect Fruit (${fruitYield(life)} tokens)`} disabled={!canCollectFruit(life)} onClick={() => collect(crop.id)} />
+                        <Button label={`Collect Fruit (${formatYield(fruitYield(life))} units)`} disabled={!canCollectFruit(life)} onClick={() => collect(crop.id)} />
                     </>}
                 </>}
             </>}

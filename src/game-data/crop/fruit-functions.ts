@@ -1,3 +1,5 @@
+import type { Yield } from "../yield/yield-types";
+import { makeYield } from "../yield/calculate-yield";
 import { advanceYoungTrack, prepareLongTermPreparation, prepareYoungMaintenance, succeeds, youngBonusChance, youngPaymentWeight, youngPeriodMonth, type RandomSource, maintenanceChance, productionProgressAfterAdvance } from "./long-term-crop-functions";
 import { FRUIT_CARD as card } from "./long-term-crop-data";
 import type { FruitAdult, FruitCrop, FruitYoung } from "./crop-types";
@@ -92,7 +94,7 @@ export function tickFruitAdult(adult: FruitAdult, random: RandomSource): FruitAd
   if (adult.stage === "ready") {
     return adult.readyAge === 0
       ? { ...adult, readyAge: 1 }
-      : newFruitAdultCycle(0, { outcome: "lost", quantity: 0 });
+      : newFruitAdultCycle(0, { outcome: "lost", quantity: makeYield(0) });
   }
   const cycleMonth = adult.cycleMonth + 1;
   const progress = productionProgressAfterAdvance(
@@ -105,13 +107,13 @@ export function tickFruitAdult(adult: FruitAdult, random: RandomSource): FruitAd
   };
 }
 
-export const fruitYield = (adult: FruitAdult) => adult.stage !== "ready" ? 0
+export const fruitYield = (adult: FruitAdult): Yield => adult.stage !== "ready" ? makeYield(0)
   : (adult.readyAge === 0 ? card.readyYield : card.overripeYield)[adult.yieldResult];
 
 export const canCollectFruit = (adult: FruitAdult) => adult.stage === "ready"
   && adult.production.harvesting && adult.production.hauling;
 
-export function collectFruitCycle(quantity: number): FruitAdult {
+export function collectFruitCycle(quantity: Yield): FruitAdult {
   return {
     phase: "adult", stage: "resting", progress: 0, payments: [],
     production: { harvesting: false, hauling: false },

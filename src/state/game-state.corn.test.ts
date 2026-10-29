@@ -1,3 +1,5 @@
+import { totalProduceYield } from "@/game-data/crop/produce-functions";
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createCrop, getCashCropStage } from "@/game-data/crop/crop-functions";
 import { createLand } from "@/game-data/land/land-functions";
@@ -138,7 +140,7 @@ describe("corn placement and payments", () => {
 describe("corn harvest and independent time", () => {
   it.each([0, 1, 2, 3, 4])("settles maintenance=%i once, retaining produce and requiring replant purchase", (maintenance) => {
     const rice = createCrop("rice", state().lands[0].id, 1, 1);
-    const held = [{ id: "held-rice", crop: "rice" }, { id: "held-corn", crop: "corn" }] as const;
+    const held = [{ id: "held-rice", crop: "rice", denomination: "whole" }, { id: "held-corn", crop: "corn", denomination: "whole" }] as const;
     useGameStore.setState({ crops: [rice], produceInventory: [...held] });
     const id = start();
     develop(id);
@@ -238,7 +240,7 @@ describe("corn harvest and independent time", () => {
   });
 
   it.each(["startNewGame", "resetAll"] as const)("%s clears mixed crops without planting or charging", (action) => {
-    useGameStore.setState({ crops: [createCrop("corn", "p", 1, 1), createCrop("rice", "r", 1, 1)], produceInventory: [{ id: "c", crop: "corn" }, { id: "r", crop: "rice" }], cropPlantingHistory: [{ cropId: "c", kind: "corn", landId: "p", year: 1 }] });
+    useGameStore.setState({ crops: [createCrop("corn", "p", 1, 1), createCrop("rice", "r", 1, 1)], produceInventory: [{ id: "c", crop: "corn", denomination: "whole" }, { id: "r", crop: "rice", denomination: "whole" }], cropPlantingHistory: [{ cropId: "c", kind: "corn", landId: "p", year: 1 }] });
     state()[action]();
     expect(state()).toMatchObject({ crops: [], produceInventory: [], cropPlantingHistory: [], wallet: { gold: 20, silver: 0 } });
   });
@@ -291,6 +293,8 @@ describe("shared transaction boundaries", () => {
     expect(state().bank).toBe(before.bank);
     expect(state().cropPlantingHistory).toBe(before.cropPlantingHistory);
     expect(state().produceInventory).toHaveLength(kind === "rice" ? 5 : 6);
+    expect(state().produceInventory.every(token => token.denomination === "whole")).toBe(true);
+    expect(totalProduceYield(state().produceInventory, kind)).toEqual(makeYield(kind === "rice" ? 5 : 6));
     rejected(() => state().harvestCrop(id));
   });
 });

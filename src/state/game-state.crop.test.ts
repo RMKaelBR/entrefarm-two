@@ -1,3 +1,5 @@
+import { totalProduceYield } from "@/game-data/crop/produce-functions";
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import type { Crop } from "@/game-data/crop/crop-types";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createCrop, prepareCropDevelopment } from "@/game-data/crop/crop-functions";
@@ -56,6 +58,8 @@ describe("irrigated rice store actions", () => {
       crops: [],
     });
     expect(useGameStore.getState().produceInventory).toHaveLength(3);
+    expect(useGameStore.getState().produceInventory.every(token => token.denomination === "whole")).toBe(true);
+    expect(totalProduceYield(useGameStore.getState().produceInventory, "rice")).toEqual(makeYield(3));
     expect(useGameStore.getState().cropPlantingHistory).toHaveLength(1);
   });
 
@@ -221,7 +225,7 @@ describe("irrigated rice store actions", () => {
 
   it("retains prior inventory across later harvests", () => {
     useGameStore.setState({
-      produceInventory: [{ id: "existing-token", crop: "rice" }],
+      produceInventory: [{ id: "existing-token", crop: "rice", denomination: "whole" }],
     });
     const cropId = prepareDevelopedCrop();
     matureCurrentCrop();
@@ -240,7 +244,7 @@ describe("irrigated rice store actions", () => {
       cropPlantingHistory: [
         { cropId: crop.id, kind: "rice", landId: riverland.id, year: 1 },
       ],
-      produceInventory: [{ id: "rice-1", crop: "rice" }],
+      produceInventory: [{ id: "rice-1", crop: "rice", denomination: "whole" }],
     });
 
     useGameStore.getState().resetAll();
