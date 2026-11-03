@@ -1,3 +1,4 @@
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { describe, expect, it, vi } from "vitest";
 import { createCrop, prepareCropDevelopment, prepareCropMaintenance, prepareCropProduction, tickCrops } from "./crop-functions";
 import type { RubberAdult, RubberCrop, RubberYoung } from "./crop-types";
@@ -7,7 +8,7 @@ import { matureRubberIfReady, newRubberAdultCycle, prepareRubberProduction, prep
 const tree = (lifecycle: RubberCrop["lifecycle"] = newRubberAdultCycle()): RubberCrop => ({
   ...createCrop("rubber", "parcel", 1, 1), lifecycle,
 });
-const ready = (yieldResult: "high" | "low" = "high", previousCyclePenalty = false): RubberAdult => ({
+const ready = (yieldResult: "high" | "low" = "high", previousCyclePenalty = false): Extract<RubberAdult, { stage: "ready" }> => ({
   ...newRubberAdultCycle(previousCyclePenalty), stage: "ready", cycleMonth: 3,
   progress: 1, yieldResult, fromOverflow: false,
 });
@@ -118,7 +119,7 @@ describe("rubber adult care and cadence", () => {
       crop = tickRubber(crop, random);
       expect(crop.lifecycle).toMatchObject({ cycleMonth: 3, yieldResult: "low" });
       const tapped = required(prepareRubberTapping(crop));
-      expect(required(prepareRubberHauling(tapped.crop)).quantity).toBe(cycle === 1 ? 2 : 1);
+      expect(required(prepareRubberHauling(tapped.crop)).quantity).toEqual(makeYield(cycle === 1 ? 2 : 1));
       crop = tickRubber(crop, random);
     }
     expect(random).not.toHaveBeenCalled();
@@ -151,15 +152,15 @@ describe("rubber tapping and independent hauling", () => {
     expect(crop.lifecycle).toMatchObject({ tappedOnTime: false, batch: null });
     expect(prepareRubberTapping(tapped.crop)).toBeNull();
     const hauled = required(prepareRubberHauling(tapped.crop));
-    expect(hauled.quantity).toBe(quantity);
+    expect(hauled.quantity).toEqual(makeYield(quantity));
     expect(hauled.cost).toEqual({ gold: 1, silver: 0 });
     expect(prepareRubberTapping(hauled.crop)).toBeNull();
     expect(prepareRubberHauling(hauled.crop)).toBeNull();
     expect(tick(hauled.crop).lifecycle).toMatchObject({ previousCyclePenalty: false });
     const delayed = tick(tapped.crop);
     expect(delayed.lifecycle).toMatchObject({ cycleMonth: 1, previousCyclePenalty: false,
-      batch: { quantity: quantity - 1, advancesSinceTapping: 1 } });
-    expect(prepareRubberHauling(delayed)?.quantity ?? 0).toBe(quantity - 1);
+      batch: { quantity: makeYield(quantity - 1), advancesSinceTapping: 1 } });
+    expect(prepareRubberHauling(delayed)?.quantity ?? makeYield(0)).toEqual(makeYield(quantity - 1));
     const expired = tick(delayed);
     expect(expired.lifecycle).toMatchObject({ cycleMonth: 2, batch: null, previousCyclePenalty: false });
     expect(prepareRubberHauling(expired)).toBeNull();
@@ -171,16 +172,16 @@ describe("rubber tapping and independent hauling", () => {
     crop = required(prepareRubberMaintenance(crop)).crop;
     crop = required(prepareRubberTapping(crop)).crop;
     expect(crop.lifecycle).toMatchObject({ tappedOnTime: false, lateTappingAvailable: false, previousCyclePenalty: true, payments: [{ month: 1, weightHundredths: 100 }] });
-    expect(required(prepareRubberHauling(crop)).quantity).toBe(1);
+    expect(required(prepareRubberHauling(crop)).quantity).toEqual(makeYield(1));
     expect(prepareRubberTapping(crop)).toBeNull();
     expect(prepareRubberTapping(required(prepareRubberHauling(crop)).crop)).toBeNull();
     crop = tick(crop);
-    expect(crop.lifecycle).toMatchObject({ cycleMonth: 2, batch: { quantity: 0, advancesSinceTapping: 1 } });
+    expect(crop.lifecycle).toMatchObject({ cycleMonth: 2, batch: { quantity: makeYield(0), advancesSinceTapping: 1 } });
     expect(prepareRubberHauling(crop)).toBeNull();
     crop = tick(crop);
     expect(crop.lifecycle).toMatchObject({ cycleMonth: 3, batch: null, yieldResult: "high", previousCyclePenalty: true });
     crop = required(prepareRubberTapping(crop)).crop;
-    expect(required(prepareRubberHauling(crop)).quantity).toBe(2);
+    expect(required(prepareRubberHauling(crop)).quantity).toEqual(makeYield(2));
     expect(tick(crop).lifecycle).toMatchObject({ previousCyclePenalty: false });
   });
 
@@ -198,13 +199,13 @@ describe("rubber tapping and independent hauling", () => {
     let crop = tree(matureRubberIfReady({ ...newLongTermYoung(), regularTokens: 16, bonusTokens: 1 }));
     if (mode === "on-time") {
       crop = required(prepareRubberTapping(crop)).crop;
-      expect(required(prepareRubberHauling(crop)).quantity).toBe(2);
+      expect(required(prepareRubberHauling(crop)).quantity).toEqual(makeYield(2));
     }
     crop = tick(crop);
     expect(crop.lifecycle).toMatchObject({ cycleMonth: 1, previousCyclePenalty: mode !== "on-time", lateTappingAvailable: mode !== "on-time" });
     if (mode === "late") {
       crop = required(prepareRubberTapping(crop)).crop;
-      expect(required(prepareRubberHauling(crop)).quantity).toBe(1);
+      expect(required(prepareRubberHauling(crop)).quantity).toEqual(makeYield(1));
     }
     crop = tick(crop);
     expect(prepareRubberTapping(crop)).toBeNull();
@@ -212,7 +213,7 @@ describe("rubber tapping and independent hauling", () => {
     crop = tick(crop);
     expect(crop.lifecycle).toMatchObject({ batch: null, cycleMonth: 3, yieldResult: "low" });
     const tapped = required(prepareRubberTapping(crop));
-    expect(required(prepareRubberHauling(tapped.crop)).quantity).toBe(mode === "on-time" ? 2 : 1);
+    expect(required(prepareRubberHauling(tapped.crop)).quantity).toEqual(makeYield(mode === "on-time" ? 2 : 1));
   });
 });
 
@@ -223,9 +224,9 @@ it("describes collection only for hauling without mutating the input", () => {
   expect(crop.lifecycle).toMatchObject({ tappedOnTime: false, batch: null });
 
   const hauled = required(prepareRubberProduction(tapped.crop, "hauling"));
-  expect(hauled.collectedProduce).toEqual({ kind: "rubber", quantity: 3 });
+  expect(hauled.collectedProduce).toEqual({ kind: "rubber", quantity: makeYield(3) });
   expect(hauled.crop.lifecycle).toMatchObject({ batch: null });
-  expect(tapped.crop.lifecycle).toMatchObject({ batch: { quantity: 3 } });
+  expect(tapped.crop.lifecycle).toMatchObject({ batch: { quantity: makeYield(3) } });
   expect(prepareRubberProduction(hauled.crop, "hauling")).toBeNull();
 });
 
@@ -242,7 +243,21 @@ it("reports only the rubber remaining after delayed hauling", () => {
   const tapped = required(prepareRubberProduction(tree(ready()), "tapping")).crop;
   const delayed = tick(tapped);
   const payment = required(prepareRubberProduction(delayed, "hauling"));
-  expect(payment.collectedProduce).toEqual({ kind: "rubber", quantity: 2 });
-  expect(delayed.lifecycle).toMatchObject({ batch: { quantity: 2 } });
+  expect(payment.collectedProduce).toEqual({ kind: "rubber", quantity: makeYield(2) });
+  expect(delayed.lifecycle).toMatchObject({ batch: { quantity: makeYield(2) } });
   expect(payment.crop.lifecycle).toMatchObject({ batch: null });
+});
+
+it.each([[1, 3, 0, 3], [0, 7, 0, 0]])("decays fractional batch %s.%s with a zero floor", (whole, tenths, remainingWhole, remainingTenths) => {
+  const crop = tree({ ...ready(), tappedOnTime: true,
+    batch: { quantity: makeYield(whole, tenths), advancesSinceTapping: 0 },
+  });
+  const aged = tick(crop);
+  expect(aged.lifecycle).toMatchObject({ batch: {
+    quantity: makeYield(remainingWhole, remainingTenths), advancesSinceTapping: 1,
+  } });
+  if (remainingTenths === 0) expect(prepareRubberHauling(aged)).toBeNull();
+  else expect(prepareRubberHauling(aged)?.quantity).toEqual(makeYield(0, 3));
+  expect(tick(aged).lifecycle).toMatchObject({ batch: null });
+  expect(crop.lifecycle).toMatchObject({ batch: { quantity: makeYield(whole, tenths) } });
 });

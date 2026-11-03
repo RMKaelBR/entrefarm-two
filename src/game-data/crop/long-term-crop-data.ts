@@ -1,3 +1,4 @@
+import { makeYield } from "../yield/calculate-yield";
 import { gold } from "../money/calculate-money";
 import type { Currency } from "../types";
 import type {
@@ -32,8 +33,8 @@ export const COCONUT_CARD = defineLongTermCrop({
   productionMaintenanceSlots: 1,
   monthTwoChance: 0.75,
   productionCosts: { climbingPiling: gold(1), husking: gold(1), hauling: gold(2) } satisfies Record<CoconutProductionTask, Currency>,
-  readyYield: { high: 3, low: 2 },
-  fallenYield: { high: 2, low: 1 },
+  readyYield: { high: makeYield(3), low: makeYield(2) },
+  fallenYield: { high: makeYield(2), low: makeYield(1) },
 });
 
 export const FRUIT_CARD = defineLongTermCrop({
@@ -48,8 +49,8 @@ export const FRUIT_CARD = defineLongTermCrop({
   productionCosts: {
     harvesting: gold(7), hauling: gold(3),
   } satisfies Record<FruitProductionTask, Currency>,
-  readyYield: { high: 12, low: 8 },
-  overripeYield: { high: 3, low: 2 },
+  readyYield: { high: makeYield(12), low: makeYield(8) },
+  overripeYield: { high: makeYield(3), low: makeYield(2) },
 });
 
 export const RUBBER_CARD = defineLongTermCrop({
@@ -64,6 +65,6 @@ export const RUBBER_CARD = defineLongTermCrop({
   productionCosts: {
     tapping: gold(1), hauling: gold(1),
   } satisfies Record<RubberProductionTask, Currency>,
-  readyYield: { high: 3, low: 2 },
-  lateYield: 1,
+  readyYield: { high: makeYield(3), low: makeYield(2) },
+  lateYield: makeYield(1),
 });

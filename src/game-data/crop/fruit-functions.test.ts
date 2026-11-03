@@ -1,3 +1,4 @@
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { describe, expect, it, vi } from "vitest";
 import { createCrop } from "./crop-functions";
 import type { FruitAdult, FruitCrop, FruitYoung } from "./crop-types";
@@ -116,12 +117,12 @@ describe("fruit rules", () => {
   });
   it.each(["high", "low"] as const)("deteriorates %s once then immediately restarts without rolls", (result) => {
     const random = vi.fn(); const adult = ready(result);
-    expect(fruitYield(adult)).toBe(result === "high" ? 12 : 8);
+    expect(fruitYield(adult)).toEqual(makeYield(result === "high" ? 12 : 8));
     const overripe = tickFruitAdult(adult, random);
-    expect(fruitYield(overripe)).toBe(result === "high" ? 3 : 2);
+    expect(fruitYield(overripe)).toEqual(makeYield(result === "high" ? 3 : 2));
     const next = tickFruitAdult(overripe, random);
-    expect(next).toEqual(newFruitAdultCycle(0, { outcome: "lost", quantity: 0 }));
-    expect(fruitYield(next)).toBe(0); expect(random).not.toHaveBeenCalled();
+    expect(next).toEqual(newFruitAdultCycle(0, { outcome: "lost", quantity: makeYield(0) }));
+    expect(fruitYield(next)).toEqual(makeYield(0)); expect(random).not.toHaveBeenCalled();
   });
   it.each([0,1] as const)("requires both fees in either order at age %i and rests on collection", (age) => {
     for (const tasks of [["hauling", "harvesting"], ["harvesting", "hauling"]]) {

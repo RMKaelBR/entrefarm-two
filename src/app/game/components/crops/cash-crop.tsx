@@ -1,5 +1,7 @@
 "use client";
 
+import { formatYield } from "@/game-data/yield/calculate-yield";
+
 import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
 import { CASH_CROP_CARDS } from "@/game-data/crop/cash-crop-data";
 import {
@@ -90,18 +92,18 @@ export function CashCropComponent({ crop }: { crop: CashCrop }) {
                         {crop.irrigationBonus === null ? (
                             <p>
                                 Irrigation bonus pending. Irrigate before preparation finishes
-                                to secure one extra token for this planting.
+                                to secure one extra unit for this planting.
                             </p>
                         ) : (
                             <>
                                 <p>{crop.irrigationBonus
-                                    ? "Irrigation bonus secured: +1 token."
+                                    ? "Irrigation bonus secured: +1 unit."
                                     : "No irrigation bonus for this planting."}</p>
                                 <p>
-                                    Incomplete maintenance: {getCropYield({ ...crop, maintenancePaid: 0 })}
-                                    {" tokens. Full maintenance: "}
-                                    {getCropYield({ ...crop, maintenancePaid: card.maintenanceSpaces })}
-                                    {" tokens."}
+                                    Incomplete maintenance: {formatYield(getCropYield({ ...crop, maintenancePaid: 0 }))}
+                                    {" units. Full maintenance: "}
+                                    {formatYield(getCropYield({ ...crop, maintenancePaid: card.maintenanceSpaces }))}
+                                    {" units."}
                                 </p>
                                 <p>Later irrigation changes apply to a future planting.</p>
                             </>

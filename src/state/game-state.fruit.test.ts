@@ -1,3 +1,5 @@
+import { createProduceInventory } from "@/game-data/crop/produce-functions";
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createCrop } from "@/game-data/crop/crop-functions";
 import { newFruitAdultCycle } from "@/game-data/crop/fruit-functions";
@@ -31,7 +33,7 @@ const ready = (age: 0 | 1 = 0): FruitCrop["lifecycle"] => ({ ...newFruitAdultCyc
 const young = (): FruitYoung => ({ phase: "young", cropMonth: 6, regularTokens: 2, bonusTokens: 0, payments: [{ month: 6, weightHundredths: 75 }] });
 beforeEach(() => useGameStore.setState({ year: 1, quarter: 1, month: 1, wallet: { gold: 1000, silver: 9 },
   bank: { gold: 7, silver: 3 }, lands: LAND_ORIGINS.map(createLand), crops: [], cropPlantingHistory: [],
-  produceInventory: [], children: [], loans: [], hasActiveGame: true }));
+  produceInventory: createProduceInventory(), children: [], loans: [], hasActiveGame: true }));
 afterEach(() => vi.restoreAllMocks());
 
 describe("fruit store lifecycle", () => {
@@ -94,15 +96,13 @@ describe("fruit store lifecycle", () => {
       expect(state().fundCropProduction(id, "harvesting")).toBe(true);
       expect(state().harvestCrop(id)).toBe(true);
       rejected(() => state().harvestCrop(id));
-      expect(tree().lifecycle).toMatchObject({ stage: "resting", lastHarvest: { quantity: 8 } });
+      expect(tree().lifecycle).toMatchObject({ stage: "resting", lastHarvest: { quantity: makeYield(8) } });
       state().advanceWorldTime();
       expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, progress: 0, payments: [] });
     }
     expect(tree()).toMatchObject({ id, landId: initial.landId, startedYear: 1, startedMonth: 1 });
     expect(state().cropPlantingHistory).toHaveLength(1);
-    expect(state().produceInventory).toHaveLength(16);
-    expect(new Set(state().produceInventory.map(p => p.id)).size).toBe(16);
-    expect(state().produceInventory.every(p => p.crop === "fruit")).toBe(true);
+    expect(state().produceInventory.fruit).toEqual(makeYield(16));
     expect(state().wallet).toEqual({ gold: 975, silver: 9 });
     expect(state().bank).toEqual({ gold: 7, silver: 3 });
     expect(random).not.toHaveBeenCalled();
@@ -155,7 +155,7 @@ describe("fruit store lifecycle", () => {
       rejected(() => state().fundCropProduction(id, task));
     }
     expect(state().harvestCrop(id)).toBe(true);
-    expect(state().produceInventory).toHaveLength(3);
+    expect(state().produceInventory.fruit).toEqual(makeYield(3));
     expect(state().bank).toEqual({ gold: 7, silver: 3 });
   });
   it("discards partial production payments at loss without refunds or resting", () => {
@@ -163,7 +163,7 @@ describe("fruit store lifecycle", () => {
     expect(state().fundCropProduction(id, "harvesting")).toBe(true);
     const before = state();
     state().advanceWorldTime(); state().advanceWorldTime();
-    expect(tree().lifecycle).toEqual(newFruitAdultCycle(0, { outcome: "lost", quantity: 0 }));
+    expect(tree().lifecycle).toEqual(newFruitAdultCycle(0, { outcome: "lost", quantity: makeYield(0) }));
     expect(state().wallet).toBe(before.wallet); expect(state().bank).toBe(before.bank);
     expect(state().produceInventory).toBe(before.produceInventory);
   });

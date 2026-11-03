@@ -1,3 +1,4 @@
+import { makeYield } from "@/game-data/yield/calculate-yield";
 import { COCONUT_CARD } from "./long-term-crop-data";
 import { describe, expect, it, vi } from "vitest";
 import { createCrop } from "./crop-functions";
@@ -132,21 +133,21 @@ describe("adult coconut cycles", () => {
     let life = ready(result);
     const random = vi.fn();
     for (const age of [0, 1, 2]) {
-      expect(coconutYield(life)).toBe((result === "high" ? 3 : 2) - (age > 0 ? 1 : 0));
+      expect(coconutYield(life)).toEqual(makeYield((result === "high" ? 3 : 2) - (age > 0 ? 1 : 0)));
       expect(canCollectCoconut({ ...life, production: { climbingPiling: false, husking: true, hauling: true } })).toBe(age > 0);
       life = tickAdult(life, random);
     }
-    expect(life).toMatchObject({ stage: "resting", lastHarvest: { outcome: "lost", quantity: 0 } });
+    expect(life).toMatchObject({ stage: "resting", lastHarvest: { outcome: "lost", quantity: makeYield(0) } });
     expect(life).not.toHaveProperty("cycleMonth");
     expect(random).not.toHaveBeenCalled();
   });
   it.each(["collected", "lost"] as const)("starts an unfunded cycle on the next advance after %s", (outcome) => {
-    const quantity = outcome === "lost" ? 0 : 3;
+    const quantity = makeYield(outcome === "lost" ? 0 : 3);
     const resting = finishAdultCycle(outcome, quantity);
     expect(resting).toEqual({ phase: "adult", stage: "resting", progress: 0, payments: [],
       production: { climbingPiling: false, husking: false, hauling: false }, lastHarvest: { outcome, quantity } });
     expect(adultProgress(resting)).toBe(0);
-    expect(coconutYield(resting)).toBe(0);
+    expect(coconutYield(resting)).toEqual(makeYield(0));
     expect(canCollectCoconut(resting)).toBe(false);
     expect(prepareCoconutMaintenance(crop(resting))).toBeNull();
     expect(prepareCoconutProduction(crop(resting), "husking")).toBeNull();

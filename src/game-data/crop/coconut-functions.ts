@@ -1,3 +1,5 @@
+import type { Yield } from "../yield/yield-types";
+import { makeYield } from "../yield/calculate-yield";
 import { advanceYoungTrack, developmentProgress, prepareLongTermPreparation, prepareYoungMaintenance, succeeds, youngBonusChance, youngPaymentWeight, youngPeriodMonth, type RandomSource, maintenanceChance, maintenanceWeightTotal, productionProgressAfterAdvance } from "./long-term-crop-functions";
 import { COCONUT_CARD as card } from "./long-term-crop-data";
 import type { CoconutAdult, CoconutCrop, CoconutYoung } from "./crop-types";
@@ -32,7 +34,7 @@ export function tickYoung(young: CoconutYoung, random: RandomSource): CoconutYou
     advanceYoungTrack(young, card.developmentMaintenanceSlots, random),
   );
 }
-export function finishAdultCycle(outcome: "collected" | "lost", quantity: number): CoconutAdult {
+export function finishAdultCycle(outcome: "collected" | "lost", quantity: Yield): CoconutAdult {
   return {
     phase: "adult", stage: "resting", progress: 0, payments: [],
     production: { climbingPiling: false, husking: false, hauling: false },
@@ -46,7 +48,7 @@ export function tickAdult(adult: CoconutAdult, random: RandomSource): CoconutAdu
     lastHarvest: adult.lastHarvest,
   };
   if (adult.stage === "ready") {
-    if (adult.readyAge === 2) return finishAdultCycle("lost", 0);
+    if (adult.readyAge === 2) return finishAdultCycle("lost", makeYield(0));
     return { ...adult, readyAge: adult.readyAge === 0 ? 1 : 2 };
   }
   const cycleMonth = adult.cycleMonth === 1 ? 2 : 3;
@@ -68,7 +70,7 @@ export function tickCoconut(crop: CoconutCrop, random: RandomSource): CoconutCro
   if (life.phase === "development") return crop;
   return { ...crop, lifecycle: life.phase === "young" ? tickYoung(life, random) : tickAdult(life, random) };
 }
-export const coconutYield = (adult: CoconutAdult) => adult.stage !== "ready" ? 0
+export const coconutYield = (adult: CoconutAdult): Yield => adult.stage !== "ready" ? makeYield(0)
   : (adult.readyAge === 0 ? card.readyYield : card.fallenYield)[adult.yieldResult];
 export const canCollectCoconut = (adult: CoconutAdult) => adult.stage === "ready"
   && (adult.readyAge > 0 || adult.production.climbingPiling) && adult.production.husking && adult.production.hauling;

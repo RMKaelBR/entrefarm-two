@@ -1,5 +1,7 @@
 "use client";
 
+import { formatYield } from "@/game-data/yield/calculate-yield";
+
 import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
 
 import { COCONUT_CARD as card } from "@/game-data/crop/long-term-crop-data";
@@ -52,7 +54,7 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
         </>}
         {life.phase === "adult" && <>
             <p>Adult · {life.stage === "resting" ? "Between cycles" : `Cycle month ${life.cycleMonth}`} · Production growth: {adultProgress(life)} / {card.productionTokens}</p>
-            {life.lastHarvest && <p role="status">Last harvest: {life.lastHarvest.outcome} · {life.lastHarvest.quantity} produce tokens.</p>}
+            {life.lastHarvest && <p role="status">Last harvest: {life.lastHarvest.outcome} · {formatYield(life.lastHarvest.quantity)} produce units.</p>}
             <p>Production maintenance: {life.payments.length} / {card.productionMaintenanceSlots}</p>
             {life.stage !== "resting" && <p>Current maintenance: {life.payments[0] ? `Paid in month ${life.payments[0].month}` : "Unfunded"}</p>}
             {life.stage === "resting" ? <>
@@ -61,7 +63,7 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
                 <p>High-yield chance: {adultHighChance(life) * 100}%. Month 1 funding guarantees high yield; month 2 funding gives {card.monthTwoChance * 100}%. Normally ready in cycle month {card.productionCycleMonths}.</p>
                 <Button label={`Fund production maintenance (${card.maintenanceCost.gold} Gold)`} disabled={!affordable || life.payments.length >= card.productionMaintenanceSlots} onClick={() => maintain(crop.id)} />
             </> : <>
-                <p>{life.readyAge === 0 ? "Harvest-ready" : "Fallen fruit"} · Stored result: {life.yieldResult} · Available yield: {coconutYield(life)} tokens</p>
+                <p>{life.readyAge === 0 ? "Harvest-ready" : "Fallen fruit"} · Stored result: {life.yieldResult} · Available yield: {formatYield(coconutYield(life))} units</p>
                 <p>{3 - life.readyAge} successful monthly advances before loss. Fruit falls on the first advance after readiness, reducing yield.</p>
                 {life.fromOverflow && <p>Early fruit from surplus young growth has fixed low yield. F&amp;M cannot improve this harvest.</p>}
                 {productionTasks.map((task) => {
@@ -75,7 +77,7 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
                         <Button label={`Fund ${labels[task]} (${cost.gold} Gold)`} disabled={waived || paid || requiresHusking || !hasWholeGold(wallet, cost)} onClick={() => produce(crop.id, task)} />
                     </div>;
                 })}
-                <Button label={`Collect Coconut (${coconutYield(life)} tokens)`} disabled={!canCollectCoconut(life)} onClick={() => collect(crop.id)} />
+                <Button label={`Collect Coconut (${formatYield(coconutYield(life))} units)`} disabled={!canCollectCoconut(life)} onClick={() => collect(crop.id)} />
                 <p>Collection or loss retains the trees. Month 1 of the next cycle starts on the following successful monthly advance. Production expenses reset without refunds.</p>
             </>}
         </>}

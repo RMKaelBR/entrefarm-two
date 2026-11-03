@@ -1,5 +1,8 @@
 "use client";
 
+import { rubberTappingYield } from "@/game-data/crop/rubber-functions";
+import { formatYield } from "@/game-data/yield/calculate-yield";
+
 import { CROP_DEFINITIONS } from "@/game-data/crop/crop-definitions";
 import { RUBBER_CARD as card } from "@/game-data/crop/long-term-crop-data";
 import { prepareRubberPreparation, prepareRubberMaintenance, prepareRubberFullMaintenance, rubberHighChance } from "@/game-data/crop/rubber-functions";
@@ -58,7 +61,7 @@ export function RubberCropComponent({ crop }: { crop: RubberCrop }) {
                     <p>Production maintenance: {life.payments.length} / {card.productionMaintenanceSlots} · High-yield chance: {percentage(rubberHighChance(life))}</p>
                     <p>Care costs 1 Gold: Month 1 guarantees high yield; Month 2 gives a 75% chance. Without care, yield is low.</p>
                 </> : <>
-                    <p>Stored result: {life.yieldResult} · {life.tappedOnTime ? "Tapped on time" : `Ready to tap: ${card.readyYield[life.yieldResult] - (life.previousCyclePenalty ? 1 : 0)} rubber`}</p>
+                    <p>Stored result: {life.yieldResult} · {life.tappedOnTime ? "Tapped on time" : `Ready to tap: ${formatYield(rubberTappingYield(life))} rubber`}</p>
                     {life.fromOverflow && <p>Surplus development growth: fixed 2-rubber readiness with no adult care window.</p>}
                     {tapButton()}
                 </>}
@@ -69,7 +72,7 @@ export function RubberCropComponent({ crop }: { crop: RubberCrop }) {
                 <h4 className="font-semibold">Rubber near the trees</h4>
                 <p>Hauling transfers remaining rubber into held produce. Held produce does not decay.</p>
                 {life.batch ? <div>
-                    <p>{life.batch.quantity} rubber near the trees.</p>
+                    <p>{formatYield(life.batch.quantity)} rubber near the trees.</p>
                     <p>{2 - life.batch.advancesSinceTapping} successful monthly advances until expiry.</p>
                     {life.batch.advancesSinceTapping === 0 && <p>The next advance loses 1 rubber.</p>}
                     <Button label={`Haul rubber (${card.productionCosts.hauling.gold} Gold)`}

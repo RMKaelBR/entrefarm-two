@@ -1,6 +1,6 @@
 import type {
   Crop, CropKind, CropDevelopmentTask, CropProductionTask,
-  CropPlantingRecord, ProduceToken,
+  CropPlantingRecord, ProduceInventory,
 } from "./crop/crop-types";
 import type { Land } from "./land/land-types";
 import type { Loan } from "./loan/loan-types";
@@ -16,7 +16,7 @@ export type GameState = {
     children: Child[];
     crops: Crop[];
     cropPlantingHistory: CropPlantingRecord[];
-    produceInventory: ProduceToken[];
+    produceInventory: ProduceInventory;
     hasActiveGame: boolean;
     startNewGame: () => void;
     advanceWorldTime: () => void;
