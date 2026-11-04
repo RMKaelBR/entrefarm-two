@@ -89,7 +89,7 @@ describe.each(["rice", "corn"] as const)("%s parcel selection", (kind) => {
     const other = cropById(b);
     produce(a);
     expect(cropById(b)).toBe(other);
-    expect(state().harvestCrop(a)).toBe(true);
+    expect(state().collectCropProduce(a)).toBe(true);
     expect(state().crops).toEqual([other]);
     expect(state().produceInventory).toEqual({ ...createProduceInventory(), [kind]: makeYield(kind === "rice" ? 2 : 4) });
     expect(cropById(b)).toBe(other);
@@ -103,7 +103,7 @@ describe.each(["rice", "corn"] as const)("%s parcel selection", (kind) => {
     expect(state().fundCropMaintenance(id)).toBe(true);
     state().advanceWorldTime();
     produce(id);
-    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().collectCropProduce(id)).toBe(true);
     expect(state().crops).toEqual([]);
     const inventory = state().produceInventory;
     expect(inventory).toEqual({ ...createProduceInventory(), [kind]: makeYield(kind === "rice" ? 2 : 4) });

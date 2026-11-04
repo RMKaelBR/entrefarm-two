@@ -22,7 +22,7 @@ export function FruitCropComponent({ crop }: { crop: FruitCrop }) {
     const develop = useGameStore((s) => s.fundCropDevelopment);
     const maintain = useGameStore((s) => s.fundCropMaintenance);
     const produce = useGameStore((s) => s.fundCropProduction);
-    const collect = useGameStore((s) => s.harvestCrop);
+    const collect = useGameStore((s) => s.collectCropProduce);
     const fundAllMaintenance = useGameStore((s) => s.fundAllFruitMaintenance);
     const fullMaintenance = prepareFruitFullMaintenance(crop);
     const affordable = hasWholeGold(wallet, card.maintenanceCost);

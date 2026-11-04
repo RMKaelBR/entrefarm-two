@@ -43,7 +43,7 @@ export function CashCropComponent({ crop }: { crop: CashCrop }) {
     const fundCropDevelopment = useGameStore((state) => state.fundCropDevelopment);
     const fundCropMaintenance = useGameStore((state) => state.fundCropMaintenance);
     const fundCropProduction = useGameStore((state) => state.fundCropProduction);
-    const harvestCrop = useGameStore((state) => state.harvestCrop);
+    const collectCropProduce = useGameStore((state) => state.collectCropProduce);
 
     const phase = getCashCropStage(crop);
     const productionTasks = getProductionTaskViews(crop);
@@ -170,7 +170,7 @@ export function CashCropComponent({ crop }: { crop: CashCrop }) {
                         {isCropProductionPaid(crop) && (
                             <Button
                                 label={`Harvest ${definition.name}`}
-                                onClick={() => harvestCrop(crop.id)}
+                                onClick={() => collectCropProduce(crop.id)}
                             />
                         )}
                     </div>

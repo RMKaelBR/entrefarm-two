@@ -13,7 +13,7 @@ export function createProduceInventory(): ProduceInventory {
   };
 }
 
-export function collectCropProduce(
+export function addProduceToInventory(
   inventory: Readonly<ProduceInventory>, kind: CropKind, quantity: Yield,
 ): ProduceInventory {
   const normalized = normalizeYield(quantity);

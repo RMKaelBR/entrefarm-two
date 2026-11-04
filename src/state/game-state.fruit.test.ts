@@ -90,12 +90,12 @@ describe("fruit store lifecycle", () => {
     expect(tree().lifecycle).toEqual(newFruitAdultCycle());
     for (let cycle = 0; cycle < 2; cycle++) {
       for (let month = 2; month <= 12; month++) state().advanceWorldTime();
-      rejected(() => state().harvestCrop(id));
+      rejected(() => state().collectCropProduce(id));
       expect(state().fundCropProduction(id, "hauling")).toBe(true);
-      rejected(() => state().harvestCrop(id));
+      rejected(() => state().collectCropProduce(id));
       expect(state().fundCropProduction(id, "harvesting")).toBe(true);
-      expect(state().harvestCrop(id)).toBe(true);
-      rejected(() => state().harvestCrop(id));
+      expect(state().collectCropProduce(id)).toBe(true);
+      rejected(() => state().collectCropProduce(id));
       expect(tree().lifecycle).toMatchObject({ stage: "resting", lastHarvest: { quantity: makeYield(8) } });
       state().advanceWorldTime();
       expect(tree().lifecycle).toMatchObject({ cycleMonth: 1, progress: 0, payments: [] });
@@ -111,7 +111,7 @@ describe("fruit store lifecycle", () => {
     rejected(() => state().fundCropDevelopment("missing", "planting"));
     rejected(() => state().fundCropMaintenance("missing"));
     rejected(() => state().fundCropProduction("missing", "hauling"));
-    rejected(() => state().harvestCrop("missing"));
+    rejected(() => state().collectCropProduce("missing"));
     useGameStore.setState({ wallet: { gold: 1, silver: 99 } });
     rejected(() => state().startCropPlanting("fruit", state().lands[0].id));
     useGameStore.setState({ wallet: { gold: 100, silver: 9 } });
@@ -154,7 +154,7 @@ describe("fruit store lifecycle", () => {
       expect(state().wallet).toEqual({ gold: 0, silver: 9 });
       rejected(() => state().fundCropProduction(id, task));
     }
-    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().collectCropProduce(id)).toBe(true);
     expect(state().produceInventory.fruit).toEqual(makeYield(3));
     expect(state().bank).toEqual({ gold: 7, silver: 3 });
   });
@@ -208,7 +208,7 @@ describe("fruit store lifecycle", () => {
   it("desynchronizes collected and uncollected fruit", () => {
     const first = start(); const second = start(1);
     useGameStore.setState({ crops: state().crops.map(c => ({ ...tree(c.id), lifecycle: ready() })) });
-    state().fundCropProduction(first, "harvesting"); state().fundCropProduction(first, "hauling"); state().harvestCrop(first);
+    state().fundCropProduction(first, "harvesting"); state().fundCropProduction(first, "hauling"); state().collectCropProduce(first);
     state().advanceWorldTime();
     expect(tree(first).lifecycle).toMatchObject({ cycleMonth: 1, stage: "growing" });
     expect(tree(second).lifecycle).toMatchObject({ readyAge: 1 });

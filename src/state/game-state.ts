@@ -1,4 +1,5 @@
-import { collectCropProduce, createProduceInventory } from "@/game-data/crop/produce-functions";
+import { addProduceToInventory, createProduceInventory } from "@/game-data/crop/produce-functions";
+import { prepareCoffeeFullMaintenance } from "@/game-data/crop/coffee-functions";
 import { prepareRubberFullMaintenance } from "@/game-data/crop/rubber-functions";
 import { canCollectFruit, fruitYield, collectFruitCycle, prepareFruitFullMaintenance } from "@/game-data/crop/fruit-functions";
 import { canCollectCoconut, coconutYield, finishAdultCycle, prepareCoconutFullMaintenance } from "@/game-data/crop/coconut-functions";
@@ -352,6 +353,23 @@ export const useGameStore = create<GameState>((set, get) => ({
         return committed;
     },
 
+    fundAllCoffeeMaintenance: (cropId) => {
+        let committed = false;
+        set((state) => {
+            const crop = state.crops.find((item) => item.id === cropId);
+            if (!crop || crop.kind !== "coffee") return state;
+            const payment = prepareCoffeeFullMaintenance(crop);
+            if (!payment || !hasWholeGold(state.wallet, payment.cost)) return state;
+            committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, payment.cost),
+                crops: state.crops.map((item) => item.id === cropId ? payment.crop : item),
+            };
+        });
+        return committed;
+    },
+
     fundAllRubberMaintenance: (cropId) => {
         let committed = false;
         set((state) => {
@@ -378,7 +396,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             if (!payment || !hasWholeGold(state.wallet, payment.cost)) return state;
             const collected = payment.collectedProduce;
             const produceInventory = collected
-                ? collectCropProduce(state.produceInventory, collected.kind, collected.quantity)
+                ? addProduceToInventory(state.produceInventory, collected.kind, collected.quantity)
                 : state.produceInventory;
             committed = true;
             return {
@@ -391,7 +409,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         return committed;
     },
 
-    harvestCrop: (cropId) => {
+    collectCropProduce: (cropId) => {
         let committed = false;
         set((state) => {
             const crop = state.crops.find((item) => item.id === cropId);
@@ -400,7 +418,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 const adult = crop.lifecycle;
                 if (adult.phase !== "adult" || !canCollectCoconut(adult)) return state;
                 const quantity = coconutYield(adult);
-                const produceInventory = collectCropProduce(state.produceInventory, "coconut", quantity);
+                const produceInventory = addProduceToInventory(state.produceInventory, "coconut", quantity);
                 committed = true;
                 return {
                     ...state,
@@ -413,7 +431,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 const adult = crop.lifecycle;
                 if (adult.phase !== "adult" || !canCollectFruit(adult)) return state;
                 const quantity = fruitYield(adult);
-                const produceInventory = collectCropProduce(state.produceInventory, "fruit", quantity);
+                const produceInventory = addProduceToInventory(state.produceInventory, "fruit", quantity);
                 committed = true;
                 return {
                     ...state,
@@ -423,9 +441,9 @@ export const useGameStore = create<GameState>((set, get) => ({
                 };
             }
 
-            if (crop.kind === "rubber") return state;
+            if (crop.kind === "rubber" || crop.kind === "coffee") return state;
             if (!isCashCropMature(crop) || !isCropProductionPaid(crop)) return state;
-            const produceInventory = collectCropProduce(state.produceInventory, crop.kind, getCropYield(crop));
+            const produceInventory = addProduceToInventory(state.produceInventory, crop.kind, getCropYield(crop));
             committed = true;
             return {
                 ...state,
