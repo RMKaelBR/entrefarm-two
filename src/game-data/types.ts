@@ -39,11 +39,12 @@ export type GameState = {
     startCropPlanting: (kind: CropKind, landId: Land["id"]) => boolean;
     fundCropDevelopment: (cropId: Crop["id"], task: CropDevelopmentTask) => boolean;
     fundAllRubberMaintenance: (cropId: Crop["id"]) => boolean;
+    fundAllCoffeeMaintenance: (cropId: Crop["id"]) => boolean;
     fundAllFruitMaintenance: (cropId: Crop["id"]) => boolean;
     fundAllCoconutMaintenance: (cropId: Crop["id"]) => boolean;
     fundCropMaintenance: (cropId: Crop["id"]) => boolean;
     fundCropProduction: (cropId: Crop["id"], task: CropProductionTask) => boolean;
-    harvestCrop: (cropId: Crop["id"]) => boolean;
+    collectCropProduce: (cropId: Crop["id"]) => boolean;
     resetAll: () => void;
 };
 

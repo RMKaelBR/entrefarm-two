@@ -182,7 +182,7 @@ describe("rice lowland and snapshot boundaries", () => {
 
 describe("registered placement rules", () => {
   it("recognizes only implemented crop kinds", () => {
-    for (const kind of ["rice", "corn", "coconut", "fruit", "rubber"]) expect(isCropKind(kind)).toBe(true);
+    for (const kind of ["rice", "corn", "coconut", "fruit", "rubber", "coffee"]) expect(isCropKind(kind)).toBe(true);
     for (const value of ["toString", "__proto__", "unknown", "", null, undefined, {}]) {
       expect(isCropKind(value)).toBe(false);
     }
