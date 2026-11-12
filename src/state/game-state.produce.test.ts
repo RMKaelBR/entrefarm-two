@@ -33,11 +33,11 @@ it("accumulates two successive rice harvests of 2.3 and 0.7", () => {
   for (let i = 0; i < 2; i++) {
     const crop = ready("rice");
     useGameStore.setState({ crops: [crop] });
-    expect(state().harvestCrop(crop.id)).toBe(true);
+    expect(state().collectCropProduce(crop.id)).toBe(true);
     expect(state().crops).toEqual([]);
     expect(state().produceInventory.rice).toEqual(i === 0 ? makeYield(2, 3) : makeYield(3));
     const before = state();
-    expect(state().harvestCrop(crop.id)).toBe(false);
+    expect(state().collectCropProduce(crop.id)).toBe(false);
     expect(state()).toBe(before);
   }
   expect(state().produceInventory.rice).toEqual(makeYield(3));
@@ -51,7 +51,7 @@ it.each(["rice", "corn", "coconut", "fruit"] as const)("accumulates mixed invent
   const snapshot = structuredClone(held);
   const crop = ready(kind);
   useGameStore.setState({ crops: [crop], produceInventory: held });
-  expect(state().harvestCrop(crop.id)).toBe(true);
+  expect(state().collectCropProduce(crop.id)).toBe(true);
   expect(state().produceInventory).toEqual({ ...held, [kind]: makeYield(3) });
   expect(held).toEqual(snapshot);
   if (kind === "coconut" || kind === "fruit") {
@@ -60,6 +60,6 @@ it.each(["rice", "corn", "coconut", "fruit"] as const)("accumulates mixed invent
     } });
   } else expect(state().crops).toEqual([]);
   const before = state();
-  expect(state().harvestCrop(crop.id)).toBe(false);
+  expect(state().collectCropProduce(crop.id)).toBe(false);
   expect(state()).toBe(before);
 });

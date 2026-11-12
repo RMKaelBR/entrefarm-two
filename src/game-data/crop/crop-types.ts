@@ -3,7 +3,7 @@ import type { Land } from "../land/land-types";
 import type { Currency, TokenTrack } from "../types";
 
 export type CashCropKind = "rice" | "corn";
-export type LongTermCropKind = "coconut" | "fruit" | "rubber";
+export type LongTermCropKind = "coconut" | "fruit" | "rubber" | "coffee";
 export type CropKind = CashCropKind | LongTermCropKind;
 export type CashCropDevelopmentTask = "plowing" | "planting";
 export type RiceProductionTask = "harvesting" | "hauling" | "drying";
@@ -42,8 +42,8 @@ export type CropPlantingRecord = {
 export type ProduceInventory = Record<CropKind, Yield>;
 
 // Shared funding API covers cash-crop and long-term development.
-export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask | RubberDevelopmentTask;
-export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask | RubberProductionTask;
+export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask | RubberDevelopmentTask | CoffeeDevelopmentTask;
+export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask | RubberProductionTask | CoffeeProductionTask;
 
 export type CropProductionPayment<TCrop extends Crop = Crop> = {
   crop: TCrop;
@@ -167,4 +167,38 @@ export type RubberCrop = {
   lifecycle: LongTermPreparation | RubberYoung | RubberAdult;
 };
 
-export type Crop = CashCrop | CoconutCrop | FruitCrop | RubberCrop;
+export type CropCalendar = { year: number; month: number };
+export type CoffeeDevelopmentTask = LongTermDevelopmentTask;
+export type CoffeeProductionTask = "harvesting" | "dryingMilling" | "hauling";
+export type CoffeeYoung = LongTermDevelopmentTrack;
+export type CoffeeOpportunity = {
+  harvestYear: number;
+  yieldResult: "high" | "low";
+  expiresAt: number;
+};
+export type CoffeeBatch = {
+  quantity: Yield;
+  harvestedAt: number;
+  expiresAt: number;
+} & ({ stage: "harvested" } | { stage: "driedMilled" });
+export type CoffeeAdult = {
+  phase: "adult";
+  calendar: CropCalendar;
+  progress: number;
+  firstEligibleHarvestYear: number;
+  cycleHarvestYear: number;
+  payments: MaintenancePayment<100 | 75 | 50 | 25>[];
+  opportunity: CoffeeOpportunity | null;
+  batch: CoffeeBatch | null;
+};
+export type CoffeeCrop = {
+  kind: "coffee";
+  id: string;
+  landId: Land["id"];
+  startedYear: number;
+  startedMonth: number;
+  purchasing: { seedlingPaid: true };
+  lifecycle: LongTermPreparation | CoffeeYoung | CoffeeAdult;
+};
+
+export type Crop = CashCrop | CoconutCrop | FruitCrop | RubberCrop | CoffeeCrop;

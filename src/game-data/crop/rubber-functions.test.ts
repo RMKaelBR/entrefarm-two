@@ -26,7 +26,7 @@ describe("rubber preparation and development", () => {
     expect(prepareRubberFullMaintenance(crop)).toBeNull();
     expect(prepareRubberPreparation(crop, "plowing")).toBeNull();
     for (const task of ["siteClearing", "seedlingHauling", "planting"] as const) {
-      expect(tickCrops([crop])[0]).toBe(crop);
+      expect(tickCrops([crop], { year: 1, month: 2 })[0]).toBe(crop);
       const payment = required(prepareCropDevelopment(crop, task, undefined));
       spent += payment.cost.gold;
       if (payment.crop.kind !== "rubber") throw new Error("Expected rubber");
@@ -36,7 +36,7 @@ describe("rubber preparation and development", () => {
     expect(spent).toBe(5);
     expect(crop).toMatchObject(identity);
     expect(crop.lifecycle).toEqual(newLongTermYoung());
-    expect(tickCrops([crop])[0]).toMatchObject({ lifecycle: { cropMonth: 2, regularTokens: 0 } });
+    expect(tickCrops([crop], { year: 1, month: 2 })[0]).toMatchObject({ lifecycle: { cropMonth: 2, regularTokens: 0 } });
     expect(prepareCropMaintenance(crop)).not.toBeNull();
     expect(prepareCropProduction(crop, "tapping")).toBeNull();
   });

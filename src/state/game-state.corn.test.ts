@@ -78,7 +78,7 @@ describe("corn placement and payments", () => {
     const id = start();
     rejected(() => state().fundCropMaintenance(id));
     rejected(() => state().fundCropProduction(id, "picking"));
-    rejected(() => state().harvestCrop(id));
+    rejected(() => state().collectCropProduce(id));
     rejected(() => state().fundCropDevelopment("unknown", "plowing"));
     // Exercise runtime boundaries that JavaScript callers can reach.
     // @ts-expect-error Deliberately invalid task
@@ -101,7 +101,7 @@ describe("corn placement and payments", () => {
     useGameStore.setState({ wallet: { gold: 20, silver: 0 } });
     expect(state().fundCropProduction(id, "picking")).toBe(true);
     rejected(() => state().fundCropProduction(id, "picking"));
-    rejected(() => state().harvestCrop(id));
+    rejected(() => state().collectCropProduce(id));
   });
 
   it("dispatches shared actions by stored kind and rejects incompatible tasks at maturity", () => {
@@ -131,7 +131,7 @@ describe("corn placement and payments", () => {
     rejected(() => state().fundCropDevelopment("unknown", "plowing"));
     rejected(() => state().fundCropMaintenance("unknown"));
     rejected(() => state().fundCropProduction("unknown", "hauling"));
-    rejected(() => state().harvestCrop("unknown"));
+    rejected(() => state().collectCropProduce("unknown"));
     // @ts-expect-error Deliberate JavaScript runtime input.
     rejected(() => state().startCropPlanting("toString", state().lands[0].id));
   });
@@ -154,13 +154,13 @@ describe("corn harvest and independent time", () => {
     for (let i = 0; i < 14; i++) state().advanceWorldTime();
     expect(corn()).toBe(ready);
     rejected(() => state().startCropPlanting("corn", ready.landId));
-    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().collectCropProduce(id)).toBe(true);
     expect(state().wallet.gold).toBe(8 - maintenance);
     expect(state().bank).toEqual({ gold: 7, silver: 0 });
     expect(state().crops).toEqual([rice]);
     expect(state().produceInventory).toEqual({ ...held, corn: makeYield(1 + (maintenance === 4 ? 6 : 4)) });
     expect(held).toEqual(snapshot);
-    rejected(() => state().harvestCrop(id));
+    rejected(() => state().collectCropProduce(id));
     start();
     expect(corn()).toMatchObject({ development: { plowing: false, planting: false }, maintenancePaid: 0, maturity: { timeTokens: 0 }, production: { picking: false, shelling: false, hauling: false, drying: false } });
     expect(corn().id).not.toBe(id);
@@ -203,7 +203,7 @@ describe("corn harvest and independent time", () => {
     })).toEqual(["harvest", "harvest"]);
     const matureRice = state().crops[0];
     produce(id);
-    state().harvestCrop(id);
+    state().collectCropProduce(id);
     expect(state().crops).toEqual([matureRice]);
   });
 
@@ -277,7 +277,7 @@ describe("shared transaction boundaries", () => {
       ? [["harvesting", 1], ["hauling", 1], ["drying", 2]] as const
       : [["picking", 2], ["shelling", 1], ["hauling", 2], ["drying", 3]] as const;
     for (const [task, cost] of tasks) {
-      rejected(() => state().harvestCrop(id));
+      rejected(() => state().collectCropProduce(id));
       useGameStore.setState({ wallet: { gold: cost - 1, silver: 9 } });
       rejected(() => state().fundCropProduction(id, task));
       useGameStore.setState({ wallet: { gold: cost, silver: 9 } });
@@ -288,11 +288,11 @@ describe("shared transaction boundaries", () => {
       rejected(() => state().fundCropProduction(id, task));
     }
     const before = state();
-    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().collectCropProduce(id)).toBe(true);
     expect(state().wallet).toBe(before.wallet);
     expect(state().bank).toBe(before.bank);
     expect(state().cropPlantingHistory).toBe(before.cropPlantingHistory);
     expect(state().produceInventory[kind]).toEqual(makeYield(kind === "rice" ? 5 : 6));
-    rejected(() => state().harvestCrop(id));
+    rejected(() => state().collectCropProduce(id));
   });
 });

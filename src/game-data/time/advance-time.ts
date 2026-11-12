@@ -11,7 +11,7 @@ export function advanceWorldTime(state: GameState): Partial<GameState> {
   return {
     ...nextTime,
     children: isQuarterEnd ? tickChildrenQuarter(state.children) : state.children,
-    crops: tickCrops(state.crops),
+    crops: tickCrops(state.crops, nextTime),
   };
 }
 

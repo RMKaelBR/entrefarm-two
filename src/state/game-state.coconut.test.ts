@@ -100,10 +100,10 @@ describe("coconut store lifecycle", () => {
     for (let cycle = 0; cycle < 2; cycle++) {
       expect(state().fundCropMaintenance(id)).toBe(true);
       state().advanceWorldTime(); state().advanceWorldTime();
-      rejected(() => state().harvestCrop(id));
+      rejected(() => state().collectCropProduce(id));
       for (const task of ["climbingPiling", "husking", "hauling"] as const) expect(state().fundCropProduction(id, task)).toBe(true);
-      expect(state().harvestCrop(id)).toBe(true);
-      rejected(() => state().harvestCrop(id));
+      expect(state().collectCropProduce(id)).toBe(true);
+      rejected(() => state().collectCropProduce(id));
       expect(tree().lifecycle).toMatchObject({ stage: "resting", lastHarvest: { outcome: "collected", quantity: makeYield(3) } });
       rejected(() => state().fundCropMaintenance(id));
       state().advanceWorldTime();
@@ -120,7 +120,7 @@ describe("coconut store lifecycle", () => {
     const id = start(); inject(ready());
     useGameStore.setState({ month, quarter: month / 3 });
     for (const task of ["climbingPiling", "husking", "hauling"] as const) state().fundCropProduction(id, task);
-    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().collectCropProduce(id)).toBe(true);
     expect(state().month).toBe(month);
     expect(tree().lifecycle).toMatchObject({ stage: "resting" });
     expect(tree().lifecycle).not.toHaveProperty("cycleMonth");
@@ -128,7 +128,7 @@ describe("coconut store lifecycle", () => {
     useGameStore.setState({ children: [{ id: "student", stage: "adult_child", gender: "male", isStudying: true,
       tuitionDecision: "pending", maturity: { timeTokens: 4, timeTokensMax: 4 }, education: { progress: 0, progressMax: 4 } }] });
     const blocked = state(); state().advanceWorldTime(); expect(state()).toBe(blocked);
-    rejected(() => state().harvestCrop(id));
+    rejected(() => state().collectCropProduce(id));
     rejected(() => state().fundCropMaintenance(id));
     rejected(() => state().fundCropProduction(id, "husking"));
     useGameStore.setState({ children: [] });
@@ -136,7 +136,7 @@ describe("coconut store lifecycle", () => {
       state().advanceWorldTime();
       expect(state().month).toBe(((month + cycleMonth - 1) % 12) + 1);
       expect(tree().lifecycle).toMatchObject({ cycleMonth, stage: cycleMonth === 3 ? "ready" : "growing" });
-      if (cycleMonth < 3) rejected(() => state().harvestCrop(id));
+      if (cycleMonth < 3) rejected(() => state().collectCropProduce(id));
     }
     expect(state().year).toBe(month === 12 ? 2 : 1);
     expect(random).not.toHaveBeenCalled();
@@ -233,12 +233,12 @@ describe("coconut store lifecycle", () => {
   it.each([1, 2] as const)("collects fallen fruit at age %i with climbing waived", (age) => {
     const id = start(); inject(ready(age));
     rejected(() => state().fundCropProduction(id, "climbingPiling"));
-    rejected(() => state().harvestCrop(id));
+    rejected(() => state().collectCropProduce(id));
     rejected(() => state().fundCropMaintenance(id));
     expect(state().fundCropProduction(id, "husking")).toBe(true);
-    rejected(() => state().harvestCrop(id));
+    rejected(() => state().collectCropProduce(id));
     expect(state().fundCropProduction(id, "hauling")).toBe(true);
-    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().collectCropProduce(id)).toBe(true);
     expect(state().produceInventory.coconut).toEqual(makeYield(2));
     expect(tree().lifecycle).toMatchObject({ stage: "resting", progress: 0, payments: [] });
     state().advanceWorldTime();
@@ -290,7 +290,7 @@ describe("coconut store lifecycle", () => {
     expect(state().crops[1]).toMatchObject({ maturity: { timeTokens: 2 } });
     expect(state().crops[2]).toBe(corn);
     for (const task of ["harvesting", "hauling", "drying"] as const) expect(state().fundCropProduction(rice.id, task)).toBe(true);
-    expect(state().harvestCrop(rice.id)).toBe(true);
+    expect(state().collectCropProduce(rice.id)).toBe(true);
     expect(state().crops.map((c) => c.id)).toEqual([id, corn.id]);
     expect(state().produceInventory).toEqual({ ...createProduceInventory(), rice: makeYield(2) });
   });

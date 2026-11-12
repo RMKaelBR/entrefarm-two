@@ -139,7 +139,7 @@ describe("rubber store integration", () => {
     rejected(() => state().fundCropProduction(id, "hauling"));
     inject(ready());
     for (const task of ["hauling", "harvesting"] as const) rejected(() => state().fundCropProduction(id, task));
-    rejected(() => state().harvestCrop(id));
+    rejected(() => state().collectCropProduce(id));
     useGameStore.setState({ wallet: { gold: 0, silver: 99 } });
     rejected(() => state().fundCropProduction(id, "tapping"));
     useGameStore.setState({ wallet: { gold: 1, silver: 9 } });

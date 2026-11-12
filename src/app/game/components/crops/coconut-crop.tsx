@@ -21,7 +21,7 @@ export function CoconutCropComponent({ crop }: { crop: CoconutCrop }) {
     const develop = useGameStore((s) => s.fundCropDevelopment);
     const maintain = useGameStore((s) => s.fundCropMaintenance);
     const produce = useGameStore((s) => s.fundCropProduction);
-    const collect = useGameStore((s) => s.harvestCrop);
+    const collect = useGameStore((s) => s.collectCropProduce);
     const fundAllMaintenance = useGameStore((s) => s.fundAllCoconutMaintenance);
     const fullMaintenance = prepareCoconutFullMaintenance(crop);
     const life = crop.lifecycle;

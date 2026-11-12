@@ -51,7 +51,7 @@ describe("irrigated rice store actions", () => {
     matureCurrentCrop();
     fundProduction(cropId);
 
-    expect(useGameStore.getState().harvestCrop(cropId)).toBe(true);
+    expect(useGameStore.getState().collectCropProduce(cropId)).toBe(true);
     expect(useGameStore.getState()).toMatchObject({
       wallet: { gold: 12, silver: 0 },
       bank: { gold: 7, silver: 0 },
@@ -72,7 +72,7 @@ describe("irrigated rice store actions", () => {
 
     useGameStore.getState().advanceWorldTime();
     fundProduction(cropId);
-    expect(useGameStore.getState().harvestCrop(cropId)).toBe(true);
+    expect(useGameStore.getState().collectCropProduce(cropId)).toBe(true);
     expect(useGameStore.getState().wallet).toEqual({ gold: 8, silver: 0 });
     expect(useGameStore.getState().produceInventory.rice).toEqual(makeYield(5));
   });
@@ -131,24 +131,24 @@ describe("irrigated rice store actions", () => {
     useGameStore.getState().advanceWorldTime();
     expect(cashCrop(useGameStore.getState().crops[0]).maturity.timeTokens).toBe(0);
     expect(useGameStore.getState().fundCropProduction(cropId, "harvesting")).toBe(false);
-    expect(useGameStore.getState().harvestCrop(cropId)).toBe(false);
+    expect(useGameStore.getState().collectCropProduce(cropId)).toBe(false);
   });
 
   it("requires every production expense and charges each only once", () => {
     const cropId = prepareDevelopedCrop();
     matureCurrentCrop();
 
-    expect(useGameStore.getState().harvestCrop(cropId)).toBe(false);
+    expect(useGameStore.getState().collectCropProduce(cropId)).toBe(false);
     expect(useGameStore.getState().fundCropProduction(cropId, "harvesting")).toBe(true);
     const afterHarvesting = useGameStore.getState();
     expect(afterHarvesting.fundCropProduction(cropId, "harvesting")).toBe(false);
     expect(useGameStore.getState().wallet).toBe(afterHarvesting.wallet);
-    expect(useGameStore.getState().harvestCrop(cropId)).toBe(false);
+    expect(useGameStore.getState().collectCropProduce(cropId)).toBe(false);
 
     expect(useGameStore.getState().fundCropProduction(cropId, "hauling")).toBe(true);
     expect(useGameStore.getState().fundCropProduction(cropId, "drying")).toBe(true);
     useGameStore.getState().advanceWorldTime();
-    expect(useGameStore.getState().harvestCrop(cropId)).toBe(true);
+    expect(useGameStore.getState().collectCropProduce(cropId)).toBe(true);
   });
 
   it("allows more than four starts in the same year", () => {
@@ -169,13 +169,13 @@ describe("irrigated rice store actions", () => {
       expect(useGameStore.getState().fundCropProduction(cropId, "harvesting")).toBe(false);
       useGameStore.getState().advanceWorldTime();
       expect(useGameStore.getState().fundCropMaintenance(cropId)).toBe(true);
-      expect(useGameStore.getState().harvestCrop(cropId)).toBe(false);
+      expect(useGameStore.getState().collectCropProduce(cropId)).toBe(false);
       useGameStore.getState().advanceWorldTime();
       expect(useGameStore.getState().month).toBe((month + 1) % 12 + 1);
       expect(useGameStore.getState().year).toBe(month >= 11 ? 2 : 1);
       expect(useGameStore.getState().fundCropMaintenance(cropId)).toBe(false);
       fundProduction(cropId);
-      expect(useGameStore.getState().harvestCrop(cropId)).toBe(true);
+      expect(useGameStore.getState().collectCropProduce(cropId)).toBe(true);
     },
   );
 
@@ -216,7 +216,7 @@ describe("irrigated rice store actions", () => {
       expect(useGameStore.getState().startCropPlanting("rice", crop.landId)).toBe(false);
     }
     expect(useGameStore.getState().wallet).toBe(wallet);
-    expect(useGameStore.getState().harvestCrop(cropId)).toBe(true);
+    expect(useGameStore.getState().collectCropProduce(cropId)).toBe(true);
     expect(useGameStore.getState().produceInventory.rice).toEqual(makeYield(3));
     expect(useGameStore.getState().startCropPlanting("rice", crop.landId)).toBe(true);
   });
@@ -228,7 +228,7 @@ describe("irrigated rice store actions", () => {
     const cropId = prepareDevelopedCrop();
     matureCurrentCrop();
     fundProduction(cropId);
-    useGameStore.getState().harvestCrop(cropId);
+    useGameStore.getState().collectCropProduce(cropId);
 
     expect(useGameStore.getState().produceInventory.rice).toEqual(makeYield(4));
   });
@@ -302,9 +302,9 @@ describe("irrigated rice store actions", () => {
         expect(useGameStore.getState().fundCropMaintenance(id)).toBe(true);
       }
       useGameStore.getState().advanceWorldTime();
-      expect(useGameStore.getState().harvestCrop(id)).toBe(false);
+      expect(useGameStore.getState().collectCropProduce(id)).toBe(false);
       fundProduction(id);
-      expect(useGameStore.getState().harvestCrop(id)).toBe(true);
+      expect(useGameStore.getState().collectCropProduce(id)).toBe(true);
       expect(useGameStore.getState().produceInventory).toEqual({
         ...createProduceInventory(), rice: makeYield((maintenance === 4 ? 4 : 2) + Number(irrigated)),
       });
@@ -364,7 +364,7 @@ describe("irrigated rice store actions", () => {
     expect(state().crops[0]).toMatchObject({ irrigationBonus: false });
     for (let i = advances; i < 2; i++) state().advanceWorldTime();
     fundProduction(id);
-    expect(state().harvestCrop(id)).toBe(true);
+    expect(state().collectCropProduce(id)).toBe(true);
     expect(state().produceInventory.rice).toEqual(makeYield(2));
     expect(state().startCropPlanting("rice", land.id)).toBe(true);
     const next = state().crops[0];
@@ -396,11 +396,11 @@ describe("irrigated rice store actions", () => {
     expect(state().crops).toBe(crops);
     expect(state().crops[0]).toMatchObject({ irrigationBonus: true, maintenancePaid: 1, maturity: { timeTokens: 2 } });
     expect(state().crops[1]).toMatchObject({ irrigationBonus: false, maturity: { timeTokens: 1 } });
-    expect(state().harvestCrop(firstId)).toBe(true);
+    expect(state().collectCropProduce(firstId)).toBe(true);
     expect(state().produceInventory.rice).toEqual(makeYield(3));
     state().advanceWorldTime();
     fundProduction(secondId);
-    expect(state().harvestCrop(secondId)).toBe(true);
+    expect(state().collectCropProduce(secondId)).toBe(true);
     expect(state().produceInventory.rice).toEqual(makeYield(5));
   });
 
