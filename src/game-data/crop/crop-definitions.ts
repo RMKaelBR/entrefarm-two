@@ -1,4 +1,4 @@
-import { COFFEE_CARD, COCONUT_CARD, FRUIT_CARD, RUBBER_CARD } from "./long-term-crop-data";
+import { CACAO_CARD, COFFEE_CARD, COCONUT_CARD, FRUIT_CARD, RUBBER_CARD } from "./long-term-crop-data";
 import type { CropKind } from "./crop-types";
 import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
@@ -14,6 +14,11 @@ type CropDefinition<K extends CropKind> = {
 };
 
 export const CROP_DEFINITIONS = {
+    cacao: {
+        kind: "cacao", name: "Cacao", emoji: "🍫", purchaseLabel: "Seedling",
+        purchaseCost: CACAO_CARD.seedlingCost,
+        getPlacementBlockReason: () => null,
+    },
     coffee: {
         kind: "coffee", name: "Coffee", emoji: "☕", purchaseLabel: "Seedling",
         purchaseCost: COFFEE_CARD.seedlingCost,

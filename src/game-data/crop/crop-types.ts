@@ -3,7 +3,7 @@ import type { Land } from "../land/land-types";
 import type { Currency, TokenTrack } from "../types";
 
 export type CashCropKind = "rice" | "corn";
-export type LongTermCropKind = "coconut" | "fruit" | "rubber" | "coffee";
+export type LongTermCropKind = "coconut" | "fruit" | "rubber" | "coffee" | "cacao";
 export type CropKind = CashCropKind | LongTermCropKind;
 export type CashCropDevelopmentTask = "plowing" | "planting";
 export type RiceProductionTask = "harvesting" | "hauling" | "drying";
@@ -42,8 +42,8 @@ export type CropPlantingRecord = {
 export type ProduceInventory = Record<CropKind, Yield>;
 
 // Shared funding API covers cash-crop and long-term development.
-export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask | RubberDevelopmentTask | CoffeeDevelopmentTask;
-export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask | RubberProductionTask | CoffeeProductionTask;
+export type CropDevelopmentTask = CashCropDevelopmentTask | CoconutDevelopmentTask | FruitDevelopmentTask | RubberDevelopmentTask | CoffeeDevelopmentTask | CacaoDevelopmentTask;
+export type CropProductionTask = RiceProductionTask | CornProductionTask | CoconutProductionTask | FruitProductionTask | RubberProductionTask | CoffeeProductionTask | CacaoProductionTask;
 
 export type CropProductionPayment<TCrop extends Crop = Crop> = {
   crop: TCrop;
@@ -201,4 +201,39 @@ export type CoffeeCrop = {
   lifecycle: LongTermPreparation | CoffeeYoung | CoffeeAdult;
 };
 
-export type Crop = CashCrop | CoconutCrop | FruitCrop | RubberCrop | CoffeeCrop;
+export type CacaoDevelopmentTask = LongTermDevelopmentTask;
+export type CacaoProductionTask = "harvesting" | "splittingFermentingDrying" | "hauling";
+export type CacaoYoung = LongTermDevelopmentTrack;
+export type CacaoOpportunity = {
+  readyAt: number;
+  expiresAt: number;
+  yieldResult: "high" | "low";
+};
+export type CacaoBatch = {
+  quantity: Yield;
+  harvestedAt: number;
+  expiresAt: number;
+  stage: "harvested" | "processed";
+};
+export type CacaoAdult = {
+  phase: "adult";
+  stage: "growing" | "ready";
+  adultMonth: number;
+  cycleMonth: number;
+  progress: number;
+  nextReadyAt: number;
+  payments: MaintenancePayment<100 | 75>[];
+  opportunity: CacaoOpportunity | null;
+  batch: CacaoBatch | null;
+};
+export type CacaoCrop = {
+  kind: "cacao";
+  id: string;
+  landId: Land["id"];
+  startedYear: number;
+  startedMonth: number;
+  purchasing: { seedlingPaid: true };
+  lifecycle: LongTermPreparation | CacaoYoung | CacaoAdult;
+};
+
+export type Crop = CashCrop | CoconutCrop | FruitCrop | RubberCrop | CoffeeCrop | CacaoCrop;
