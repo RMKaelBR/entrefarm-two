@@ -1,4 +1,5 @@
 import { addProduceToInventory, createProduceInventory } from "@/game-data/crop/produce-functions";
+import { prepareCacaoFullMaintenance } from "@/game-data/crop/cacao-functions";
 import { prepareCoffeeFullMaintenance } from "@/game-data/crop/coffee-functions";
 import { prepareRubberFullMaintenance } from "@/game-data/crop/rubber-functions";
 import { canCollectFruit, fruitYield, collectFruitCycle, prepareFruitFullMaintenance } from "@/game-data/crop/fruit-functions";
@@ -353,6 +354,23 @@ export const useGameStore = create<GameState>((set, get) => ({
         return committed;
     },
 
+    fundAllCacaoMaintenance: (cropId) => {
+        let committed = false;
+        set((state) => {
+            const crop = state.crops.find(item => item.id === cropId);
+            if (!crop || crop.kind !== "cacao") return state;
+                const payment = prepareCacaoFullMaintenance(crop);
+            if (!payment || !hasWholeGold(state.wallet, payment.cost)) return state;
+                committed = true;
+            return {
+                ...state,
+                wallet: subCurrency(state.wallet, payment.cost),
+                crops: state.crops.map(item => item.id === cropId ? payment.crop : item),
+            };
+        });
+        return committed;
+    },
+
     fundAllCoffeeMaintenance: (cropId) => {
         let committed = false;
         set((state) => {
@@ -441,7 +459,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 };
             }
 
-            if (crop.kind === "rubber" || crop.kind === "coffee") return state;
+            if (crop.kind === "rubber" || crop.kind === "coffee" || crop.kind === "cacao") return state;
             if (!isCashCropMature(crop) || !isCropProductionPaid(crop)) return state;
             const produceInventory = addProduceToInventory(state.produceInventory, crop.kind, getCropYield(crop));
             committed = true;

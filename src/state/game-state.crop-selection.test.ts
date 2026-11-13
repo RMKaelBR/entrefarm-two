@@ -136,3 +136,21 @@ describe("rubber parcel selection", () => {
     }
   });
 });
+
+describe("cacao parcel selection", () => {
+  it("registers four-gold seedlings and accepts every owned terrain without clearing it", () => {
+    expect(CROP_DEFINITIONS.cacao.purchaseCost).toEqual({ gold: 4, silver: 0 });
+    for (const origin of LAND_ORIGINS) {
+      const base = createLand(origin);
+      for (const land of [base, clearLand(base), irrigateLand(clearLand(base))]) {
+        useGameStore.setState({ lands: [land], crops: [] });
+        expect(getCropPlacementBlockReason("cacao", land)).toBeNull();
+        rejected(() => state().startCropPlanting("cacao", "unowned"));
+        startOn("cacao", land.id);
+        expect(state().lands[0]).toBe(land);
+        rejected(() => state().startCropPlanting("cacao", land.id));
+        rejected(() => state().startCropPlanting("coffee", land.id));
+      }
+    }
+  });
+});

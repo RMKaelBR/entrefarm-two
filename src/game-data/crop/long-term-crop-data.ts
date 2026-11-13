@@ -2,7 +2,7 @@ import { makeYield } from "../yield/calculate-yield";
 import { gold } from "../money/calculate-money";
 import type { Currency } from "../types";
 import type {
-  CoffeeDevelopmentTask, CoffeeProductionTask, CoconutDevelopmentTask, CoconutProductionTask, RubberDevelopmentTask, RubberProductionTask,
+  CacaoDevelopmentTask, CacaoProductionTask, CoffeeDevelopmentTask, CoffeeProductionTask, CoconutDevelopmentTask, CoconutProductionTask, RubberDevelopmentTask, RubberProductionTask,
   FruitDevelopmentTask, FruitProductionTask, LongTermCropDefinition,
 } from "./crop-types";
 
@@ -87,4 +87,20 @@ export const COFFEE_CARD = defineLongTermCrop({
     1: { high: makeYield(0, 3), low: makeYield(0, 1) },
     2: { high: makeYield(0, 2), low: makeYield(0, 1) },
   },
+});
+
+export const CACAO_CARD = defineLongTermCrop({
+  seedlingCost: gold(4),
+  developmentCosts: {
+    siteClearing: gold(1), seedlingHauling: gold(1), planting: gold(1),
+  } satisfies Record<CacaoDevelopmentTask, Currency>,
+  developmentTokens: 11,
+  developmentMaintenanceSlots: 4,
+  productionTokens: 2,
+  productionMaintenanceSlots: 5,
+  productionCosts: {
+    harvesting: gold(1), splittingFermentingDrying: gold(1), hauling: gold(1),
+  } satisfies Record<CacaoProductionTask, Currency>,
+  readyYield: { high: makeYield(0, 2), low: makeYield(0, 1) },
+  lateYield: makeYield(0, 1),
 });
