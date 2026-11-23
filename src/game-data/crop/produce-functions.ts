@@ -4,6 +4,7 @@ import { addYield, compareYield, makeYield, normalizeYield } from "../yield/calc
 
 export function createProduceInventory(): ProduceInventory {
   return {
+    banana: makeYield(0),
     coffee: makeYield(0),
     cacao: makeYield(0),
     rice: makeYield(0),
