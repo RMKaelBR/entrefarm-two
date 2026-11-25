@@ -1,32 +1,32 @@
-import { describe, expect, it } from "vitest";
+import { assert, describe, expect, it, vi } from "vitest";
 import { createCrop } from "./crop-functions";
-import { matureBananaIfReady, newBananaAdultCycle, bananaHighChance, prepareBananaFullMaintenance, prepareBananaMaintenance, prepareBananaProduction, tickBananaAdult } from "./banana-functions";
+import { matureBananaIfReady, newBananaAdultCycle, bananaHighChance, prepareBananaMaintenance, prepareBananaProduction, tickBananaAdult } from "./banana-functions";
 import { newLongTermYoung } from "./long-term-crop-functions";
-import type { BananaCrop, BananaYoung } from "./crop-types";
+import type { BananaAdult, BananaCrop, BananaYoung } from "./crop-types";
 import { makeYield } from "../yield/calculate-yield";
 
 const crop = () => createCrop("banana", "land", 1, 12);
 const withLife = (lifecycle: BananaCrop["lifecycle"]): BananaCrop => ({ ...crop(), lifecycle });
 describe("banana lifecycle", () => {
   it("keeps payment weights and resolves adult care at 50%, 37.5%, 87.5%, and 100%", () => {
-    let adult = newBananaAdultCycle();
-    adult = prepareBananaMaintenance(withLife(adult))!.crop.lifecycle as typeof adult;
-    expect(bananaHighChance(adult)).toBe(0.5);
-    adult = tickBananaAdult(adult, () => 0.99);
-    const second = prepareBananaMaintenance(withLife(adult))!.crop.lifecycle as typeof adult;
+    const first = prepareBananaMaintenance(withLife(newBananaAdultCycle()))?.crop.lifecycle;
+    assert(first?.phase === "adult");
+    expect(bananaHighChance(first)).toBe(0.5);
+    const monthTwo = tickBananaAdult(first, () => 0.99);
+    const second = prepareBananaMaintenance(withLife(monthTwo))?.crop.lifecycle;
+    assert(second?.phase === "adult");
     expect(second.payments[0]).toMatchObject({ month: 1, weightHundredths: 100 });
     expect(second.payments[1]).toMatchObject({ month: 2, weightHundredths: 75 });
     expect(bananaHighChance(second)).toBe(0.875);
     const resolved = tickBananaAdult(second, () => 0.8);
-    expect(resolved.stage).toBe("ready");
-    if (resolved.stage === "ready") expect(resolved.yieldResult).toBe("high");
-    const monthTwoOnly = { ...adult, payments: [{ month: 2, weightHundredths: 75 as const }] };
+    expect(resolved).toMatchObject({ stage: "ready", yieldResult: "high" });
+    const monthTwoOnly = { ...monthTwo, payments: [{ month: 2, weightHundredths: 75 as const }] };
     expect(bananaHighChance(monthTwoOnly)).toBe(0.375);
-    const fullyFunded = { ...adult, payments: [{ month: 1, weightHundredths: 100 as const }, { month: 1, weightHundredths: 100 as const }] };
+    const fullyFunded = { ...monthTwo, payments: [{ month: 1, weightHundredths: 100 as const }, { month: 1, weightHundredths: 100 as const }] };
     expect(bananaHighChance(fullyFunded)).toBe(1);
-    const guaranteed = tickBananaAdult(fullyFunded, () => 1);
-    expect(guaranteed.stage).toBe("ready");
-    if (guaranteed.stage === "ready") expect(guaranteed.yieldResult).toBe("high");
+    const random = vi.fn(() => 1);
+    expect(tickBananaAdult(fullyFunded, random)).toMatchObject({ stage: "ready", yieldResult: "high" });
+    expect(random).not.toHaveBeenCalled();
   });
 
   it("starts an exact four-token tree growing and gives overflow one fixed low opportunity", () => {
@@ -40,16 +40,24 @@ describe("banana lifecycle", () => {
   });
 
   it("fills the meter once at Month 3, expires on the next tick, and enforces harvest then haul", () => {
-    const growing = { ...newBananaAdultCycle(), cycleMonth: 2 as const,
-      payments: [{ month: 1, weightHundredths: 100 as const }, { month: 2, weightHundredths: 75 as const }] };
-    const ready = tickBananaAdult(growing, () => { throw new Error("full chance must not reroll"); });
-    expect(ready).toMatchObject({ stage: "ready", cycleMonth: 3, progress: 1 });
+    const growing = {
+      ...newBananaAdultCycle(),
+      stage: "growing",
+      cycleMonth: 2,
+      payments: [{ month: 1, weightHundredths: 100 }, { month: 2, weightHundredths: 75 }],
+    } satisfies BananaAdult;
+    const random = vi.fn(() => 0.86);
+    const ready = tickBananaAdult(growing, random);
+    expect(ready).toMatchObject({ stage: "ready", cycleMonth: 3, progress: 1, yieldResult: "high" });
+    expect(random).toHaveBeenCalledTimes(1);
     const readyCrop = withLife(ready);
     expect(prepareBananaProduction(readyCrop, "hauling")).toBeNull();
-    const harvested = prepareBananaProduction(readyCrop, "harvesting")!;
+    const harvested = prepareBananaProduction(readyCrop, "harvesting");
+    assert(harvested?.crop.lifecycle.phase === "adult");
     expect(prepareBananaProduction(harvested.crop, "harvesting")).toBeNull();
     expect(prepareBananaProduction(harvested.crop, "hauling")!.collectedProduce?.quantity).toEqual(makeYield(7));
-    expect(tickBananaAdult(ready, () => 0)).toMatchObject({ stage: "growing", cycleMonth: 1, payments: [], batch: null });
-    expect(tickBananaAdult(harvested.crop.lifecycle as typeof ready, () => 0).cycleMonth).toBe(1);
+    expect(tickBananaAdult(ready, random)).toEqual(newBananaAdultCycle());
+    expect(tickBananaAdult(harvested.crop.lifecycle, random)).toEqual(newBananaAdultCycle());
+    expect(random).toHaveBeenCalledTimes(1);
   });
 });

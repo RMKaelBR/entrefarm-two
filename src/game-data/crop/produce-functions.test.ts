@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 import { makeYield, tenthsToYield } from "../yield/calculate-yield";
 import { addProduceToInventory, createProduceInventory } from "./produce-functions";
 
-const kinds = ["rice", "corn", "coconut", "fruit", "rubber", "coffee", "cacao"] as const;
+const kinds = ["rice", "corn", "coconut", "fruit", "rubber", "coffee", "cacao", "banana"] as const;
 
 describe("produce inventory", () => {
-  it("creates all seven zero quantities with isolated objects", () => {
+  it("creates a separate zero quantity for every crop in each inventory", () => {
     const first = createProduceInventory();
     const second = createProduceInventory();
-    expect(first).toEqual({ rice: makeYield(0), corn: makeYield(0), coconut: makeYield(0), fruit: makeYield(0), rubber: makeYield(0), coffee: makeYield(0), cacao: makeYield(0) });
+    expect(first).toEqual(Object.fromEntries(kinds.map(kind => [kind, makeYield(0)])));
     expect(second).toEqual(first);
     expect(second).not.toBe(first);
-    expect(new Set([...Object.values(first), ...Object.values(second)]).size).toBe(14);
+    expect(new Set([...Object.values(first), ...Object.values(second)]).size).toBe(kinds.length * 2);
   });
 
   it.each(kinds)("adds fractions to %s without mutating holdings or incoming quantity", kind => {

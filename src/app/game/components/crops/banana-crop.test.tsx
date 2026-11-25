@@ -5,7 +5,7 @@ import { BananaCropComponent } from "./banana-crop";
 import { createCrop } from "@/game-data/crop/crop-functions";
 import { newBananaAdultCycle, tickBananaAdult } from "@/game-data/crop/banana-functions";
 import { newLongTermYoung } from "@/game-data/crop/long-term-crop-functions";
-import type { BananaCrop } from "@/game-data/crop/crop-types";
+import type { BananaAdult, BananaCrop } from "@/game-data/crop/crop-types";
 
 const view = vi.hoisted(() => ({ wallet: { gold: 100, silver: 0 }, fundCropDevelopment: () => true, fundCropMaintenance: () => true, fundCropProduction: () => true, fundAllBananaMaintenance: () => true }));
 vi.mock("@/state/game-state", () => ({ useGameStore: (selector: (state: typeof view) => unknown) => selector(view) }));
@@ -24,8 +24,12 @@ it("shows young care slots and period weight", () => {
 });
 
 it("shows adult weights, stored yield, costs, and the one-month deadline", () => {
-  const grown = newBananaAdultCycle();
-  const adult = { ...grown, cycleMonth: 2 as const, payments: [{ month: 1, weightHundredths: 100 as const }] };
+  const adult = {
+    ...newBananaAdultCycle(),
+    stage: "growing",
+    cycleMonth: 2,
+    payments: [{ month: 1, weightHundredths: 100 }],
+  } satisfies BananaAdult;
   const ready = tickBananaAdult(adult, () => 0);
   const html = render(ready);
   for (const phrase of ["Month 3 / 3", "Stored result: high", "7 bananas", "Harvest bananas (2 Gold)", "must happen before hauling", "next successful monthly advance"]) expect(html).toContain(phrase);
