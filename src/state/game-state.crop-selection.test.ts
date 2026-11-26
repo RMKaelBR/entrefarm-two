@@ -154,3 +154,19 @@ describe("cacao parcel selection", () => {
     }
   });
 });
+
+describe("banana parcel selection", () => {
+  it("allows forested and cleared plains plus foothills while rejecting unowned and occupied parcels", () => {
+    for (const origin of ["forestedPlains", "plains", "foothills"] as const) {
+      const land = createLand(origin);
+      for (const parcel of [land, clearLand(land)]) {
+        useGameStore.setState({ lands: [parcel], crops: [], wallet: { gold: 100, silver: 0 } });
+        expect(getCropPlacementBlockReason("banana", parcel)).toBeNull();
+        rejected(() => state().startCropPlanting("banana", "unowned"));
+        startOn("banana", parcel.id);
+        expect(state().lands[0]).toBe(parcel);
+        rejected(() => state().startCropPlanting("banana", parcel.id));
+      }
+    }
+  });
+});

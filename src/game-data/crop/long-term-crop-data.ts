@@ -3,7 +3,7 @@ import { gold } from "../money/calculate-money";
 import type { Currency } from "../types";
 import type {
   CacaoDevelopmentTask, CacaoProductionTask, CoffeeDevelopmentTask, CoffeeProductionTask, CoconutDevelopmentTask, CoconutProductionTask, RubberDevelopmentTask, RubberProductionTask,
-  FruitDevelopmentTask, FruitProductionTask, LongTermCropDefinition,
+  FruitDevelopmentTask, FruitProductionTask, LongTermCropDefinition, BananaDevelopmentTask, BananaProductionTask,
 } from "./crop-types";
 
 export const LONG_TERM_RULES = {
@@ -103,4 +103,15 @@ export const CACAO_CARD = defineLongTermCrop({
   } satisfies Record<CacaoProductionTask, Currency>,
   readyYield: { high: makeYield(0, 2), low: makeYield(0, 1) },
   lateYield: makeYield(0, 1),
+});
+
+export const BANANA_CARD = defineLongTermCrop({
+  seedlingCost: gold(6),
+  developmentCosts: { siteClearing: gold(1), seedlingHauling: gold(2), planting: gold(1) } satisfies Record<BananaDevelopmentTask, Currency>,
+  developmentTokens: 4,
+  developmentMaintenanceSlots: 11,
+  productionTokens: 1,
+  productionMaintenanceSlots: 2,
+  productionCosts: { harvesting: gold(2), hauling: gold(2) } satisfies Record<BananaProductionTask, Currency>,
+  readyYield: { high: makeYield(7, 0), low: makeYield(4, 0) },
 });

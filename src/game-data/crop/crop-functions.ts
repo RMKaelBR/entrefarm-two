@@ -1,4 +1,5 @@
 import { prepareCacaoPreparation, prepareCacaoMaintenance, prepareCacaoProduction, tickCacao } from "./cacao-functions";
+import { prepareBananaPreparation, prepareBananaMaintenance, prepareBananaProduction, tickBanana } from "./banana-functions";
 import { prepareCoffeePreparation, prepareCoffeeMaintenance, prepareCoffeeProduction, tickCoffee } from "./coffee-functions";
 import type { Yield } from "../yield/yield-types";
 import { addYield, makeYield } from "../yield/calculate-yield";
@@ -10,7 +11,7 @@ import type { Land } from "../land/land-types";
 import type { Currency } from "../types";
 import { CROP_DEFINITIONS, IMPLEMENTED_CROPS } from "./crop-definitions";
 import { CASH_CROP_CARDS } from "./cash-crop-data";
-import type { CacaoCrop, CropCalendar, CoffeeCrop, CropProductionPayment, Crop, RubberCrop, FruitCrop, CoconutCrop, CashCropKind, CashCrop, CashCropBase, CropKind, CropPlantingRecord } from "./crop-types";
+import type { BananaCrop, CacaoCrop, CropCalendar, CoffeeCrop, CropProductionPayment, Crop, RubberCrop, FruitCrop, CoconutCrop, CashCropKind, CashCrop, CashCropBase, CropKind, CropPlantingRecord } from "./crop-types";
 
 export const hasWholeGold = (wallet: Currency, cost: Currency) =>
   cost.silver === 0 && wallet.gold >= cost.gold;
@@ -74,6 +75,7 @@ export const canPlantCropOnLand = (kind: CropKind, land: Land) =>
   getCropPlacementBlockReason(kind, land) === null;
 
 export function createCrop(kind: "cacao", landId: Land["id"], year: number, month: number): CacaoCrop;
+export function createCrop(kind: "banana", landId: Land["id"], year: number, month: number): BananaCrop;
 export function createCrop(kind: "coffee", landId: Land["id"], year: number, month: number): CoffeeCrop;
 export function createCrop(kind: "rubber", landId: Land["id"], year: number, month: number): RubberCrop;
 export function createCrop(kind: "fruit", landId: Land["id"], year: number, month: number): FruitCrop;
@@ -81,7 +83,7 @@ export function createCrop(kind: "coconut", landId: Land["id"], year: number, mo
 export function createCrop(kind: CashCropKind, landId: Land["id"], year: number, month: number): CashCrop;
 export function createCrop(kind: CropKind, landId: Land["id"], year: number, month: number): Crop;
 export function createCrop(kind: CropKind, landId: Land["id"], year: number, month: number): Crop {
-  if (kind === "coconut" || kind === "fruit" || kind === "rubber" || kind === "coffee" || kind === "cacao") return {
+  if (kind === "coconut" || kind === "fruit" || kind === "rubber" || kind === "coffee" || kind === "cacao" || kind === "banana") return {
     kind, id: crypto.randomUUID(), landId, startedYear: year, startedMonth: month,
     purchasing: { seedlingPaid: true },
     lifecycle: newLongTermPreparation(),
@@ -116,6 +118,7 @@ export function prepareCropDevelopment(
   parcelIsIrrigated: boolean | undefined,
 ): CropPayment | null {
   if (crop.kind === "cacao") return prepareCacaoPreparation(crop, task);
+  if (crop.kind === "banana") return prepareBananaPreparation(crop, task);
   if (crop.kind === "coffee") return prepareCoffeePreparation(crop, task);
   if (crop.kind === "rubber") return prepareRubberPreparation(crop, task);
   if (crop.kind === "fruit") return prepareFruitPreparation(crop, task);
@@ -136,6 +139,7 @@ export function prepareCropDevelopment(
 
 export function prepareCropMaintenance(crop: Crop): CropPayment | null {
   if (crop.kind === "cacao") return prepareCacaoMaintenance(crop);
+  if (crop.kind === "banana") return prepareBananaMaintenance(crop);
   if (crop.kind === "coffee") return prepareCoffeeMaintenance(crop);
   if (crop.kind === "rubber") return prepareRubberMaintenance(crop);
   if (crop.kind === "fruit") return prepareFruitMaintenance(crop);
@@ -147,6 +151,7 @@ export function prepareCropMaintenance(crop: Crop): CropPayment | null {
 
 export function prepareCropProduction(crop: Crop, task: unknown): CropProductionPayment | null {
   if (crop.kind === "cacao") return prepareCacaoProduction(crop, task);
+  if (crop.kind === "banana") return prepareBananaProduction(crop, task);
   if (crop.kind === "coffee") return prepareCoffeeProduction(crop, task);
   if (crop.kind === "rubber") return prepareRubberProduction(crop, task);
   if (crop.kind === "fruit") return prepareFruitProduction(crop, task);
@@ -181,6 +186,7 @@ export function tickCrops(crops: Crop[], at: CropCalendar, random: RandomSource 
   return crops.map((crop) => {
     switch (crop.kind) {
       case "cacao": return tickCacao(crop, random);
+      case "banana": return tickBanana(crop, random);
       case "coffee": return tickCoffee(crop, at, random);
       case "rubber": return tickRubber(crop, random);
       case "fruit": return tickFruit(crop, random);
